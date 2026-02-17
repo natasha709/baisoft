@@ -91,7 +91,7 @@ export default function Login() {
 
           <div className="text-center">
             <Link href="/register" className="text-blue-600 hover:text-blue-800">
-              Don't have an account? Register
+              Don&apos;t have an account? Register
             </Link>
           </div>
           <div className="text-center">

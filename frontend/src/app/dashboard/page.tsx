@@ -23,6 +23,10 @@ export default function Dashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', price: '' });
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [editData, setEditData] = useState({ name: '', description: '', price: '' });
+  const [editError, setEditError] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -92,6 +96,33 @@ export default function Dashboard() {
   };
 
   if (!user) return null;
+
+  const openEdit = (p: Product) => {
+    setEditError('');
+    setEditing(p);
+    setEditData({ name: p.name, description: p.description, price: p.price });
+  };
+
+  const closeEdit = () => {
+    setEditing(null);
+    setEditError('');
+    setEditSaving(false);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    setEditError('');
+    setEditSaving(true);
+    try {
+      await api.patch(`/products/${editing.id}/`, editData);
+      closeEdit();
+      fetchProducts();
+    } catch (err: any) {
+      setEditError(err.response?.data?.detail || err.response?.data?.error || 'Failed to update product');
+      setEditSaving(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const colors = {
@@ -242,6 +273,14 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500 mt-2">Created by: {product.created_by_email}</p>
                   </div>
                   <div className="flex flex-col gap-2">
+                    {hasPermission('edit_product') && (
+                      <button
+                        onClick={() => openEdit(product)}
+                        className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 text-sm"
+                      >
+                        Edit
+                      </button>
+                    )}
                     {product.status === 'draft' && hasPermission('edit_product') && (
                       <button
                         onClick={() => handleSubmitForApproval(product.id)}
@@ -274,6 +313,73 @@ export default function Dashboard() {
         )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-lg shadow-xl">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Product</h3>
+              <button
+                onClick={closeEdit}
+                className="text-gray-500 hover:text-gray-800"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
+              {editError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3">
+                  {editError}
+                </div>
+              )}
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                placeholder="Product name"
+              />
+              <textarea
+                required
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+                value={editData.description}
+                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                placeholder="Description"
+              />
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+                value={editData.price}
+                onChange={(e) => setEditData({ ...editData, price: e.target.value })}
+                placeholder="Price"
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                  disabled={editSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                  disabled={editSaving}
+                >
+                  {editSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

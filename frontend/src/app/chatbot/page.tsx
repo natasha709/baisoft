@@ -86,14 +86,14 @@ export default function Chatbot() {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 mt-20">
-                <p className="text-lg mb-2">👋 Hi! I'm your AI product assistant.</p>
+                <p className="text-lg mb-2">👋 Hi! I&apos;m your AI product assistant.</p>
                 <p>Ask me about available products, prices, or anything else!</p>
                 <div className="mt-6 text-sm text-left max-w-md mx-auto space-y-2">
                   <p className="font-semibold">Try asking:</p>
                   <ul className="list-disc list-inside space-y-1 text-gray-600">
-                    <li>"What products are available?"</li>
-                    <li>"Which products are under $50?"</li>
-                    <li>"Tell me about [product name]"</li>
+                    <li>&quot;What products are available?&quot;</li>
+                    <li>&quot;Which products are under $50?&quot;</li>
+                    <li>&quot;Tell me about [product name]&quot;</li>
                   </ul>
                 </div>
               </div>
