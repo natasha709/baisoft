@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { Edit, Trash2 } from 'lucide-react';
 
 interface User {
   id: number;
@@ -22,7 +23,8 @@ export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     first_name: '',
@@ -47,7 +49,6 @@ export default function UsersPage() {
     try {
       const response = await api.get('/auth/users/');
       const data = response.data;
-      // Handle both array and paginated response
       setUsers(Array.isArray(data) ? data : (data.results || []));
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -56,25 +57,58 @@ export default function UsersPage() {
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      first_name: '',
+      last_name: '',
+      role: 'viewer',
+    });
+    setEditingUser(null);
+    setError('');
+    setShowForm(false);
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (userToEdit: User) => {
+    setEditingUser(userToEdit);
+    setFormData({
+      email: userToEdit.email,
+      first_name: userToEdit.first_name,
+      last_name: userToEdit.last_name,
+      role: userToEdit.role,
+    });
+    setError('');
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      await api.post('/auth/users/', {
-        ...formData,
-        business: user?.business,
-      });
-      setFormData({
-        email: '',
-        first_name: '',
-        last_name: '',
-        role: 'viewer',
-      });
-      setShowCreateForm(false);
+      if (editingUser) {
+        await api.patch(`/auth/users/${editingUser.id}/`, {
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          role: formData.role,
+          // email is usually not editable easily for auth/identity reasons in some systems, but passing it if allowed
+        });
+      } else {
+        await api.post('/auth/users/', {
+          ...formData,
+          business: user?.business,
+        });
+      }
+
+      resetForm();
       fetchUsers();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create user');
+      setError(err.response?.data?.error || `Failed to ${editingUser ? 'update' : 'create'} user`);
     }
   };
 
@@ -82,7 +116,7 @@ export default function UsersPage() {
     if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) {
       return;
     }
-    
+
     try {
       await api.delete(`/auth/users/${userId}/`);
       fetchUsers();
@@ -118,26 +152,26 @@ export default function UsersPage() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg flex flex-col">
+      <div className="w-64 bg-[#001529] text-white shadow-lg flex flex-col transition-colors duration-200">
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-900">Product Marketplace</h1>
+          <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
         </div>
-        
+
         <nav className="mt-6 flex-1">
-          <Link 
-            href="/dashboard" 
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600"
+          <Link
+            href="/dashboard"
+            className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
             Products
           </Link>
-          
+
           {user.role === 'admin' && (
-            <Link 
-              href="/users" 
-              className="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600"
+            <Link
+              href="/users"
+              className="flex items-center px-6 py-3 text-white bg-blue-600 border-r-4 border-blue-400"
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -145,10 +179,10 @@ export default function UsersPage() {
               Manage Users
             </Link>
           )}
-          
-          <Link 
-            href="/chatbot" 
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600"
+
+          <Link
+            href="/chatbot"
+            className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -156,16 +190,16 @@ export default function UsersPage() {
             AI Chatbot
           </Link>
         </nav>
-        
-        <div className="border-t border-gray-200">
-          <div className="p-4 bg-gray-50">
-            <p className="text-sm font-medium text-gray-900">{user.business_name}</p>
-            <p className="text-xs text-gray-600 mt-1">{user.email}</p>
+
+        <div className="border-t border-gray-700">
+          <div className="p-4 bg-[#001529]">
+            <p className="text-sm font-medium text-white">{user.business_name}</p>
+            <p className="text-xs text-gray-400 mt-1">{user.email}</p>
             <p className="text-xs text-gray-500">{user.role}</p>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className="flex items-center w-full px-6 py-3 text-red-600 hover:bg-red-50"
+            className="flex items-center w-full px-6 py-3 text-white hover:bg-red-900/20 transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -181,94 +215,106 @@ export default function UsersPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
             <button
-              onClick={() => setShowCreateForm(true)}
+              onClick={handleOpenCreate}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
               Create User
             </button>
           </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : users.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">No users yet. Create your first user!</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {u.first_name} {u.last_name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{u.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleBadge(u.role)}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(u)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleDeleteUser(u.id, u.email)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Delete
-                      </button>
-                    </td>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <p className="text-gray-500">No users yet. Create your first user!</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-[#001529]">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((u) => (
+                    <tr key={u.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {u.first_name} {u.last_name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{u.email}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleBadge(u.role)}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(u)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => handleOpenEdit(u)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Edit User"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u.id, u.email)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete User"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Create User Modal */}
-      {showCreateForm && (
+      {/* Create/Edit User Modal */}
+      {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-xl rounded-lg shadow-xl">
             <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Create New User</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editingUser ? 'Edit User' : 'Create New User'}
+              </h3>
               <button
-                onClick={() => setShowCreateForm(false)}
+                onClick={resetForm}
                 className="text-gray-500 hover:text-gray-800"
-                aria-label="Close create user"
+                aria-label="Close form"
               >
                 ✕
               </button>
             </div>
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3">
                   {error}
@@ -279,9 +325,10 @@ export default function UsersPage() {
                   type="email"
                   placeholder="Email"
                   required
-                  className="px-3 py-2 border border-gray-300 rounded"
+                  className={`px-3 py-2 border border-gray-300 rounded ${editingUser ? 'bg-gray-100' : ''}`}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={!!editingUser}
                 />
                 <input
                   type="text"
@@ -313,15 +360,19 @@ export default function UsersPage() {
                   </select>
                 </div>
               </div>
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded">
-                <p className="text-sm text-blue-800">
-                  📧 An invitation email with a temporary password will be sent to the user.
-                </p>
-              </div>
+
+              {!editingUser && (
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded">
+                  <p className="text-sm text-blue-800">
+                    📧 An invitation email with a temporary password will be sent to the user.
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={resetForm}
                   className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
                 >
                   Cancel
@@ -330,7 +381,7 @@ export default function UsersPage() {
                   type="submit"
                   className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
                 >
-                  Create User
+                  {editingUser ? 'Update User' : 'Create User'}
                 </button>
               </div>
             </form>

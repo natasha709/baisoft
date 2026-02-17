@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [editData, setEditData] = useState({ name: '', description: '', price: '' });
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [viewing, setViewing] = useState<Product | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -50,7 +51,7 @@ export default function Dashboard() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     try {
       await api.post('/products/', formData);
       setFormData({ name: '', description: '', price: '' });
@@ -72,7 +73,7 @@ export default function Dashboard() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    
+
     try {
       await api.delete(`/products/${id}/`);
       fetchProducts();
@@ -136,26 +137,26 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg flex flex-col">
+      <div className="w-64 bg-[#001529] text-white shadow-lg flex flex-col transition-colors duration-200">
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-900">Product Marketplace</h1>
+          <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
         </div>
-        
+
         <nav className="mt-6 flex-1">
-          <Link 
-            href="/dashboard" 
-            className="flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600"
+          <Link
+            href="/dashboard"
+            className="flex items-center px-6 py-3 text-white bg-blue-600 border-r-4 border-blue-400"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
             Products
           </Link>
-          
+
           {user.role === 'admin' && (
-            <Link 
-              href="/users" 
-              className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600"
+            <Link
+              href="/users"
+              className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -163,10 +164,10 @@ export default function Dashboard() {
               Manage Users
             </Link>
           )}
-          
-          <Link 
-            href="/chatbot" 
-            className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 hover:text-blue-600"
+
+          <Link
+            href="/chatbot"
+            className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -174,16 +175,16 @@ export default function Dashboard() {
             AI Chatbot
           </Link>
         </nav>
-        
-        <div className="border-t border-gray-200">
-          <div className="p-4 bg-gray-50">
-            <p className="text-sm font-medium text-gray-900">{user.business_name}</p>
-            <p className="text-xs text-gray-600 mt-1">{user.email}</p>
+
+        <div className="border-t border-gray-700">
+          <div className="p-4 bg-[#001529]">
+            <p className="text-sm font-medium text-white">{user.business_name}</p>
+            <p className="text-xs text-gray-400 mt-1">{user.email}</p>
             <p className="text-xs text-gray-500">{user.role}</p>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className="flex items-center w-full px-6 py-3 text-red-600 hover:bg-red-50"
+            className="flex items-center w-full px-6 py-3 text-white hover:bg-red-900/20 transition-colors"
           >
             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -208,131 +209,158 @@ export default function Dashboard() {
             )}
           </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">No products yet. Create your first product!</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created By
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-700 line-clamp-2">{product.description}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-blue-600">${product.price}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(product.status)}`}
-                      >
-                        {product.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{product.created_by_email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                      {hasPermission('edit_product') && (
-                        <button
-                          onClick={() => openEdit(product)}
-                          className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800"
-                          aria-label="Edit product"
-                          title="Edit product"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15.232 5.232a2.5 2.5 0 013.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                      {product.status === 'draft' && hasPermission('edit_product') && (
-                        <button
-                          onClick={() => handleSubmitForApproval(product.id)}
-                          className="inline-flex items-center px-3 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700"
-                        >
-                          Submit
-                        </button>
-                      )}
-                      {product.status === 'pending_approval' && hasPermission('approve_product') && (
-                        <button
-                          onClick={() => handleApprove(product.id)}
-                          className="inline-flex items-center px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700"
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {hasPermission('delete_product') && (
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-800 hover:bg-red-50"
-                          aria-label="Delete product"
-                          title="Delete product"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-3h4m-4 0H9m6 0h1m-9 3h10M10 11v6m4-6v6"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                    </td>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <p className="text-gray-500">No products yet. Create your first product!</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-[#001529]">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Created By
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {products.map((product) => (
+                    <tr key={product.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-700 line-clamp-2">{product.description}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-blue-600">${product.price}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(product.status)}`}
+                        >
+                          {product.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{product.created_by_email}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                        <button
+                          onClick={() => setViewing(product)}
+                          className="inline-flex items-center justify-center text-gray-600 hover:text-gray-800"
+                          aria-label="View product"
+                          title="View product"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        </button>
+                        {hasPermission('edit_product') && (
+                          <button
+                            onClick={() => openEdit(product)}
+                            className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800"
+                            aria-label="Edit product"
+                            title="Edit product"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232a2.5 2.5 0 013.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                        {product.status === 'draft' && hasPermission('edit_product') && (
+                          <button
+                            onClick={() => handleSubmitForApproval(product.id)}
+                            className="inline-flex items-center px-3 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700"
+                          >
+                            Submit
+                          </button>
+                        )}
+                        {product.status === 'pending_approval' && hasPermission('approve_product') && (
+                          <button
+                            onClick={() => handleApprove(product.id)}
+                            className="inline-flex items-center px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {hasPermission('delete_product') && (
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-800 hover:bg-red-50"
+                            aria-label="Delete product"
+                            title="Delete product"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-3h4m-4 0H9m6 0h1m-9 3h10M10 11v6m4-6v6"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
@@ -464,6 +492,65 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Product Modal */}
+      {viewing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl">
+            <div className="px-6 py-4 border-b flex items-center justify-between bg-[#001529]">
+              <h3 className="text-lg font-semibold text-white">Product Details</h3>
+              <button
+                onClick={() => setViewing(null)}
+                className="text-white hover:text-gray-300"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Product Name</label>
+                  <p className="text-lg font-semibold text-gray-900">{viewing.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Price</label>
+                  <p className="text-lg font-semibold text-blue-600">${viewing.price}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Description</label>
+                <p className="text-gray-700 leading-relaxed">{viewing.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Status</label>
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(viewing.status)}`}
+                  >
+                    {viewing.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Created By</label>
+                  <p className="text-gray-700">{viewing.created_by_email}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t flex justify-end">
+                <button
+                  onClick={() => setViewing(null)}
+                  className="px-6 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

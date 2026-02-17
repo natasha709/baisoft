@@ -57,9 +57,10 @@ export default function Chatbot() {
       const response = await api.post('/chatbot/query/', { message: userMessage });
       setMessages(prev => [...prev, { isUser: false, text: response.data.response }]);
     } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Sorry, I encountered an error. Please try again.';
       setMessages(prev => [...prev, { 
         isUser: false, 
-        text: 'Sorry, I encountered an error. Please try again.' 
+        text: errorMessage
       }]);
     } finally {
       setLoading(false);
