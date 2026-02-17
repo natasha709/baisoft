@@ -32,7 +32,10 @@ export default function UsersPage() {
     role: 'viewer',
   });
   const [error, setError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<{ id: number; email: string } | null>(null);
 
+  // Route guard: only logged-in admins can manage users.
   useEffect(() => {
     if (!user) {
       router.push('/login');
@@ -49,6 +52,7 @@ export default function UsersPage() {
     try {
       const response = await api.get('/auth/users/');
       const data = response.data;
+      // Support both paginated and non-paginated API responses.
       setUsers(Array.isArray(data) ? data : (data.results || []));
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -70,11 +74,13 @@ export default function UsersPage() {
   };
 
   const handleOpenCreate = () => {
+    // Reset stale state before opening create modal.
     resetForm();
     setShowForm(true);
   };
 
   const handleOpenEdit = (userToEdit: User) => {
+    // Pre-fill the form with selected user data for editing.
     setEditingUser(userToEdit);
     setFormData({
       email: userToEdit.email,
@@ -92,6 +98,7 @@ export default function UsersPage() {
 
     try {
       if (editingUser) {
+        // For edit, update only mutable fields.
         await api.patch(`/auth/users/${editingUser.id}/`, {
           first_name: formData.first_name,
           last_name: formData.last_name,
@@ -99,6 +106,7 @@ export default function UsersPage() {
           // email is usually not editable easily for auth/identity reasons in some systems, but passing it if allowed
         });
       } else {
+        // For create, include business so user is assigned to current tenant.
         await api.post('/auth/users/', {
           ...formData,
           business: user?.business,
@@ -113,15 +121,23 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (userId: number, userEmail: string) => {
-    if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) {
-      return;
-    }
+    // Open delete confirmation modal instead of browser confirm
+    setDeletingUser({ id: userId, email: userEmail });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deletingUser) return;
 
     try {
-      await api.delete(`/auth/users/${userId}/`);
+      await api.delete(`/auth/users/${deletingUser.id}/`);
+      setShowDeleteModal(false);
+      setDeletingUser(null);
       fetchUsers();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to delete user');
+      setShowDeleteModal(false);
+      setDeletingUser(null);
     }
   };
 
@@ -157,17 +173,7 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
         </div>
 
-        <nav className="mt-6 flex-1">
-          <Link
-            href="/dashboard"
-            className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            Products
-          </Link>
-
+        <nav className="mt-6 flex-1 space-y-2">
           {user.role === 'admin' && (
             <Link
               href="/users"
@@ -179,6 +185,16 @@ export default function UsersPage() {
               Manage Users
             </Link>
           )}
+
+          <Link
+            href="/dashboard"
+            className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            Products
+          </Link>
 
           <Link
             href="/chatbot"
@@ -325,7 +341,7 @@ x
                   type="email"
                   placeholder="Email"
                   required
-                  className={`px-3 py-2 border border-gray-300 rounded ${editingUser ? 'bg-gray-100' : ''}`}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded ${editingUser ? 'bg-gray-100' : ''}`}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={!!editingUser}
@@ -334,7 +350,7 @@ x
                   type="text"
                   placeholder="First Name"
                   required
-                  className="px-3 py-2 border border-gray-300 rounded"
+                  className="w-full px-3 py-2 border border-gray-300 rounded"
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                 />
@@ -342,7 +358,7 @@ x
                   type="text"
                   placeholder="Last Name"
                   required
-                  className="px-3 py-2 border border-gray-300 rounded"
+                  className="w-full px-3 py-2 border border-gray-300 rounded"
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 />
@@ -385,6 +401,42 @@ An invitation email with a temporary password will be sent to the user.
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete User</h3>
+              <p className="text-gray-600 text-center mb-6">
+                Are you sure you want to delete user <span className="font-medium">{deletingUser?.email}</span>? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingUser(null);
+                  }}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

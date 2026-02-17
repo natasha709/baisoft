@@ -28,7 +28,10 @@ export default function Dashboard() {
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [viewing, setViewing] = useState<Product | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<{ id: number; name: string } | null>(null);
 
+  // Redirect unauthenticated users to login before loading product data.
   useEffect(() => {
     if (!user) {
       router.push('/login');
@@ -40,6 +43,7 @@ export default function Dashboard() {
   const fetchProducts = async () => {
     try {
       const response = await api.get('/products/');
+      // Handle both paginated ({ results: [...] }) and direct array responses.
       setProducts(response.data.results || response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -64,6 +68,7 @@ export default function Dashboard() {
 
   const handleApprove = async (id: number) => {
     try {
+      // Approval is role-gated on the backend; UI only exposes when allowed.
       await api.post(`/products/${id}/approve/`);
       fetchProducts();
     } catch (err: any) {
@@ -71,19 +76,30 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+  const handleDelete = async (id: number, name: string) => {
+    // Open delete confirmation modal instead of browser confirm
+    setDeletingProduct({ id, name });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!deletingProduct) return;
 
     try {
-      await api.delete(`/products/${id}/`);
+      await api.delete(`/products/${deletingProduct.id}/`);
+      setShowDeleteModal(false);
+      setDeletingProduct(null);
       fetchProducts();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to delete product');
+      setShowDeleteModal(false);
+      setDeletingProduct(null);
     }
   };
 
   const handleSubmitForApproval = async (id: number) => {
     try {
+      // Draft products move to pending_approval through this action.
       await api.post(`/products/${id}/submit_for_approval/`);
       fetchProducts();
     } catch (err: any) {
@@ -100,6 +116,7 @@ export default function Dashboard() {
 
   const openEdit = (p: Product) => {
     setEditError('');
+    // Seed edit modal fields from selected product.
     setEditing(p);
     setEditData({ name: p.name, description: p.description, price: p.price });
   };
@@ -126,6 +143,7 @@ export default function Dashboard() {
   };
 
   const getStatusBadge = (status: string) => {
+    // Centralized status-to-style mapping keeps table and modals visually consistent.
     const colors = {
       draft: 'bg-gray-200 text-gray-800',
       pending_approval: 'bg-yellow-200 text-yellow-800',
@@ -142,17 +160,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
         </div>
 
-        <nav className="mt-6 flex-1">
-          <Link
-            href="/dashboard"
-            className="flex items-center px-6 py-3 text-white bg-blue-600 border-r-4 border-blue-400"
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            Products
-          </Link>
-
+        <nav className="mt-6 flex-1 space-y-2">
           {user.role === 'admin' && (
             <Link
               href="/users"
@@ -164,6 +172,16 @@ export default function Dashboard() {
               Manage Users
             </Link>
           )}
+
+          <Link
+            href="/dashboard"
+            className="flex items-center px-6 py-3 text-white bg-blue-600 border-r-4 border-blue-400"
+          >
+            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            Products
+          </Link>
 
           <Link
             href="/chatbot"
@@ -333,7 +351,7 @@ export default function Dashboard() {
                         )}
                         {hasPermission('delete_product') && (
                           <button
-                            onClick={() => handleDelete(product.id)}
+                            onClick={() => handleDelete(product.id, product.name)}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-800 hover:bg-red-50"
                             aria-label="Delete product"
                             title="Delete product"
@@ -548,6 +566,42 @@ export default function Dashboard() {
                   className="px-6 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Product</h3>
+              <p className="text-gray-600 text-center mb-6">
+                Are you sure you want to delete product <span className="font-medium">{deletingProduct?.name}</span>? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletingProduct(null);
+                  }}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteProduct}
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
                 </button>
               </div>
             </div>

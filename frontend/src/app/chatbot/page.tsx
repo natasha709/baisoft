@@ -23,6 +23,7 @@ export default function Chatbot() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Protect this route so only authenticated users can access chatbot features.
   useEffect(() => {
     if (!user) {
       router.push('/login');
@@ -34,10 +35,13 @@ export default function Chatbot() {
   const fetchHistory = async () => {
     try {
       const response = await api.get('/chatbot/history/');
+      // API returns user/AI pairs. We transform each pair into two bubble messages
+      // and flatten them so the UI can render a single chronological list.
       const history = (response.data.results || response.data).map((msg: any) => [
         { isUser: true, text: msg.user_message },
         { isUser: false, text: msg.ai_response },
       ]).flat();
+      // Reverse so older records appear first and latest appears at the bottom.
       setMessages(history.reverse());
     } catch (error) {
       console.error('Error fetching chat history:', error);
@@ -50,6 +54,7 @@ export default function Chatbot() {
 
     const userMessage = input;
     setInput('');
+    // Optimistic update: show user message immediately before API response returns.
     setMessages([...messages, { isUser: true, text: userMessage }]);
     setLoading(true);
 
@@ -58,6 +63,7 @@ export default function Chatbot() {
       setMessages(prev => [...prev, { isUser: false, text: response.data.response }]);
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Sorry, I encountered an error. Please try again.';
+      // Keep failures visible in the thread so users understand what happened.
       setMessages(prev => [...prev, {
         isUser: false,
         text: errorMessage
