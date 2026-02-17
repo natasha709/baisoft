@@ -58,8 +58,8 @@ export default function Chatbot() {
       setMessages(prev => [...prev, { isUser: false, text: response.data.response }]);
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Sorry, I encountered an error. Please try again.';
-      setMessages(prev => [...prev, { 
-        isUser: false, 
+      setMessages(prev => [...prev, {
+        isUser: false,
         text: errorMessage
       }]);
     } finally {
@@ -87,12 +87,13 @@ export default function Chatbot() {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 mt-20">
-                <p className="text-lg mb-2">👋 Hi! I&apos;m your AI product assistant.</p>
+<p className="text-lg mb-2">Hi! I&apos;m your AI product assistant.</p>
                 <p>Ask me about available products, prices, or anything else!</p>
                 <div className="mt-6 text-sm text-left max-w-md mx-auto space-y-2">
                   <p className="font-semibold">Try asking:</p>
                   <ul className="list-disc list-inside space-y-1 text-gray-600">
-                    <li>&quot;What products are available?&quot;</li>
+                    <li>&quot;Show me all available products&quot;</li>
+                    <li>&quot;What products do you have?&quot;</li>
                     <li>&quot;Which products are under $50?&quot;</li>
                     <li>&quot;Tell me about [product name]&quot;</li>
                   </ul>
@@ -105,11 +106,11 @@ export default function Chatbot() {
                   className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                      msg.isUser
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-900'
-                    }`}
+                    className={`max-w-[70%] rounded-lg px-4 py-2 ${msg.isUser
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-900'
+                      }`}
+                    style={{ whiteSpace: 'pre-wrap' }}
                   >
                     {msg.text}
                   </div>

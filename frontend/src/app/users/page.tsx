@@ -311,7 +311,7 @@ export default function UsersPage() {
                 className="text-gray-500 hover:text-gray-800"
                 aria-label="Close form"
               >
-                ✕
+x
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -364,7 +364,7 @@ export default function UsersPage() {
               {!editingUser && (
                 <div className="bg-blue-50 border border-blue-200 p-3 rounded">
                   <p className="text-sm text-blue-800">
-                    📧 An invitation email with a temporary password will be sent to the user.
+An invitation email with a temporary password will be sent to the user.
                   </p>
                 </div>
               )}

@@ -375,7 +375,7 @@ export default function Dashboard() {
                 className="text-gray-500 hover:text-gray-800"
                 aria-label="Close create product"
               >
-                ✕
+                x
               </button>
             </div>
             <form onSubmit={handleCreateProduct} className="p-6 space-y-4">
@@ -440,7 +440,7 @@ export default function Dashboard() {
                 className="text-gray-500 hover:text-gray-800"
                 aria-label="Close"
               >
-                ✕
+                x
               </button>
             </div>
             <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
@@ -507,7 +507,7 @@ export default function Dashboard() {
                 className="text-white hover:text-gray-300"
                 aria-label="Close"
               >
-                ✕
+                x
               </button>
             </div>
             <div className="p-6 space-y-6">

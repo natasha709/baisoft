@@ -2,7 +2,7 @@
 
 ## What I Implemented
 
-### ✅ Backend (Django)
+### Backend (Django)
 - JWT authentication with role-based access control
 - Business model with user management
 - Product CRUD with approval workflow
@@ -11,7 +11,7 @@
 - Object-level permissions
 - Comprehensive test coverage
 
-### ✅ Frontend (Next.js)
+### Frontend (Next.js)
 - Authentication (login/logout)
 - Product management dashboard
 - Role-based UI rendering
@@ -19,7 +19,7 @@
 - Responsive design
 - Form validation and error handling
 
-### ✅ AI Chatbot
+### AI Chatbot
 - OpenAI integration for product queries
 - Context-aware responses
 - Chat history storage
@@ -155,10 +155,10 @@ Frontend will be available at `http://localhost:3000`
 
 | Role | Create Product | Edit Product | Approve Product | Delete Product | View All |
 |------|---------------|--------------|-----------------|----------------|----------|
-| Admin | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Editor | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Approver | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Viewer | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Admin | Yes | Yes | Yes | Yes | Yes |
+| Editor | Yes | Yes | No | No | Yes |
+| Approver | No | No | Yes | No | Yes |
+| Viewer | No | No | No | No | Yes |
 
 ## Tech Decisions & Assumptions
 
