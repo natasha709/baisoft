@@ -2,9 +2,10 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from .models import Product
-from .serializers import ProductSerializer, ProductCreateSerializer
+from .serializers import ProductSerializer, ProductCreateSerializer, PublicProductSerializer
 from .permissions import ProductPermission
 
 
@@ -34,13 +35,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Product.objects.filter(business=self.request.user.business)
 
     def get_serializer_class(self):
+        if self.action == 'list' and self.request.query_params.get('public') == 'true':
+            return PublicProductSerializer
         if self.action == 'create':
             return ProductCreateSerializer
         return ProductSerializer
 
     def perform_create(self, serializer):
         if not self.request.user.has_permission('create_product'):
-            raise PermissionError("You don't have permission to create products")
+            raise PermissionDenied("You don't have permission to create products")
         
         serializer.save(
             created_by=self.request.user,
@@ -50,12 +53,12 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         if not self.request.user.has_permission('edit_product'):
-            raise PermissionError("You don't have permission to edit products")
+            raise PermissionDenied("You don't have permission to edit products")
         serializer.save()
 
     def perform_destroy(self, instance):
         if not self.request.user.has_permission('delete_product'):
-            raise PermissionError("You don't have permission to delete products")
+            raise PermissionDenied("You don't have permission to delete products")
         instance.delete()
 
     @action(detail=True, methods=['post'])
@@ -73,6 +76,12 @@ class ProductViewSet(viewsets.ModelViewSet):
                 {'error': 'Product is already approved'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if product.status != 'pending_approval':
+            return Response(
+                {'error': 'Only products pending approval can be approved'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         product.status = 'approved'
         product.approved_by = request.user
@@ -85,6 +94,12 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def submit_for_approval(self, request, pk=None):
         product = self.get_object()
+
+        if not request.user.has_permission('edit_product'):
+            return Response(
+                {'error': "You don't have permission to submit products for approval"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         if product.status != 'draft':
             return Response(

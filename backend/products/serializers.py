@@ -2,6 +2,21 @@ from rest_framework import serializers
 from .models import Product
 
 
+class PublicProductSerializer(serializers.ModelSerializer):
+    business_name = serializers.CharField(source='business.name', read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'name',
+            'description',
+            'price',
+            'business_name',
+        ]
+        read_only_fields = fields
+
+
 class ProductSerializer(serializers.ModelSerializer):
     created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
     approved_by_email = serializers.EmailField(source='approved_by.email', read_only=True)

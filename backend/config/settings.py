@@ -165,6 +165,7 @@ CORS_ALLOW_CREDENTIALS = True
 # --------------------------------------------------
 
 OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+OPENAI_MODEL = config('OPENAI_MODEL', default='gpt-4o-mini')
 
 # --------------------------------------------------
 # EMAIL CONFIGURATION

@@ -10,6 +10,7 @@ def get_ai_response(user_message, products, user):
         return "AI service is not configured. Please set OPENAI_API_KEY in settings."
     
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    model = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")
     
     # Build product context
     product_context = "Available products:\n"
@@ -30,7 +31,7 @@ politely inform them. Be concise and helpful."""
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}

@@ -18,6 +18,8 @@ class ProductPermission(permissions.BasePermission):
             return request.user.has_permission('delete_product')
         elif view.action == 'approve':
             return request.user.has_permission('approve_product')
+        elif view.action == 'submit_for_approval':
+            return request.user.has_permission('edit_product')
         
         return True
 

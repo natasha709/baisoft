@@ -2,12 +2,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from .models import Business, User
 from .serializers import BusinessSerializer, UserSerializer, RegisterSerializer, LoginSerializer, ChangePasswordSerializer
 from .email_service import generate_temporary_password, send_invitation_email, set_temporary_password_expiry
+from .permissions import UserManagementPermission
 
 
 @api_view(['POST'])
@@ -98,7 +100,7 @@ class BusinessViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, UserManagementPermission]
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -108,14 +110,20 @@ class UserViewSet(viewsets.ModelViewSet):
         return User.objects.filter(id=self.request.user.id)
 
     def perform_create(self, serializer):
-        if not self.request.user.has_permission('create_user') and not self.request.user.role == 'admin':
-            raise PermissionError("You don't have permission to create users")
+        if self.request.user.is_superuser:
+            # superusers may create any user (respect incoming business if provided)
+            user = serializer.save()
+        else:
+            if self.request.user.role != 'admin':
+                raise PermissionDenied("You don't have permission to create users")
+
+            # Force business isolation server-side (ignore any business sent by client)
+            user = serializer.save(business=self.request.user.business)
         
         # Generate temporary password
         temp_password = generate_temporary_password()
         
         # Create user with temporary password
-        user = serializer.save()
         user.set_password(temp_password)
         
         # Set password change requirement and expiry
@@ -129,3 +137,26 @@ class UserViewSet(viewsets.ModelViewSet):
             print(f"Warning: Failed to send invitation email to {user.email}")
         
         return user
+
+    def perform_update(self, serializer):
+        # Only admins/superusers can update users via this viewset.
+        if not self.request.user.is_superuser and self.request.user.role != 'admin':
+            raise PermissionDenied("You don't have permission to update users")
+
+        if self.request.user.is_superuser:
+            serializer.save()
+            return
+
+        # Admin can update users, but cannot move users across businesses.
+        serializer.save(business=self.request.user.business)
+
+    def perform_destroy(self, instance):
+        # Only admins/superusers can delete users.
+        if not self.request.user.is_superuser and self.request.user.role != 'admin':
+            raise PermissionDenied("You don't have permission to delete users")
+
+        # Admin can only delete users in their own business
+        if not self.request.user.is_superuser and instance.business_id != self.request.user.business_id:
+            raise PermissionDenied("You can't delete users outside your business")
+
+        instance.delete()

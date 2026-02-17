@@ -4,5 +4,9 @@ djangorestframework-simplejwt==5.3.1
 django-cors-headers==4.3.1
 python-decouple==3.8
 openai==1.12.0
-psycopg2-binary==2.9.9
 python-dotenv==1.0.0
+
+# Optional (PostgreSQL). Install only if you switch DATABASES to Postgres:
+# - Windows + Python 3.13 may require build tools for psycopg2.
+# - Prefer psycopg (psycopg3) binary wheels:
+# psycopg[binary]==3.2.6

@@ -67,7 +67,7 @@ class ProductAPITestCase(TestCase):
             'description': 'Test Description',
             'price': '99.99'
         })
-        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_approver_can_approve_product(self):
         product = Product.objects.create(
@@ -125,4 +125,4 @@ class ProductAPITestCase(TestCase):
         data = response.json()
         products = data if isinstance(data, list) else data.get('results', [])
         self.assertEqual(len(products), 1)
-        self.assertEqual(products[0]['status'], 'approved')
+        self.assertEqual(products[0]['name'], 'Approved Product')

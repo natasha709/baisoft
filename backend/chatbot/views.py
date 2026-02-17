@@ -17,8 +17,14 @@ def chat_query(request):
     
     user_message = serializer.validated_data['message']
     
-    # Get approved products for context
+    # Get approved products for context (business-scoped for safety)
     products = Product.objects.filter(status='approved')
+    if request.user.is_superuser:
+        pass
+    elif getattr(request.user, "business_id", None):
+        products = products.filter(business=request.user.business)
+    else:
+        products = Product.objects.none()
     
     # Get AI response
     try:
