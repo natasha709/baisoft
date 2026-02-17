@@ -208,11 +208,154 @@ export default function Dashboard() {
             )}
           </div>
 
-        {showCreateForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-4">Create New Product</h3>
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
-            <form onSubmit={handleCreateProduct} className="space-y-4">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <p className="text-gray-500">No products yet. Create your first product!</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created By
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-700 line-clamp-2">{product.description}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-blue-600">${product.price}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(product.status)}`}
+                      >
+                        {product.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{product.created_by_email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                      {hasPermission('edit_product') && (
+                        <button
+                          onClick={() => openEdit(product)}
+                          className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800"
+                          aria-label="Edit product"
+                          title="Edit product"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232a2.5 2.5 0 013.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                      {product.status === 'draft' && hasPermission('edit_product') && (
+                        <button
+                          onClick={() => handleSubmitForApproval(product.id)}
+                          className="inline-flex items-center px-3 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700"
+                        >
+                          Submit
+                        </button>
+                      )}
+                      {product.status === 'pending_approval' && hasPermission('approve_product') && (
+                        <button
+                          onClick={() => handleApprove(product.id)}
+                          className="inline-flex items-center px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {hasPermission('delete_product') && (
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-600 hover:text-red-800 hover:bg-red-50"
+                          aria-label="Delete product"
+                          title="Delete product"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-3h4m-4 0H9m6 0h1m-9 3h10M10 11v6m4-6v6"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        </div>
+      </div>
+
+      {/* Create Product Modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-lg shadow-xl">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Create New Product</h3>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="text-gray-500 hover:text-gray-800"
+                aria-label="Close create product"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleCreateProduct} className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3">
+                  {error}
+                </div>
+              )}
               <input
                 type="text"
                 placeholder="Product Name"
@@ -225,7 +368,7 @@ export default function Dashboard() {
                 placeholder="Description"
                 required
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
+                className="w-full max-w-md mx-auto px-3 py-2 border border-gray-300 rounded"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
@@ -238,81 +381,25 @@ export default function Dashboard() {
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Create
-              </button>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Create
+                </button>
+              </div>
             </form>
           </div>
-        )}
-
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-500">No products yet. Create your first product!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {products.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-semibold">{product.name}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(product.status)}`}>
-                        {product.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 mb-2">{product.description}</p>
-                    <p className="text-2xl font-bold text-blue-600">${product.price}</p>
-                    <p className="text-sm text-gray-500 mt-2">Created by: {product.created_by_email}</p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {hasPermission('edit_product') && (
-                      <button
-                        onClick={() => openEdit(product)}
-                        className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 text-sm"
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {product.status === 'draft' && hasPermission('edit_product') && (
-                      <button
-                        onClick={() => handleSubmitForApproval(product.id)}
-                        className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 text-sm"
-                      >
-                        Submit for Approval
-                      </button>
-                    )}
-                    {product.status === 'pending_approval' && hasPermission('approve_product') && (
-                      <button
-                        onClick={() => handleApprove(product.id)}
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
-                      >
-                        Approve
-                      </button>
-                    )}
-                    {hasPermission('delete_product') && (
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
         </div>
-      </div>
+      )}
 
       {/* Edit Modal */}
       {editing && (

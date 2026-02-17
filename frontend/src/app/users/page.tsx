@@ -181,71 +181,12 @@ export default function UsersPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
+              onClick={() => setShowCreateForm(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
-              {showCreateForm ? 'Cancel' : 'Create User'}
+              Create User
             </button>
           </div>
-
-        {showCreateForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-4">Create New User</h3>
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  required
-                  className="px-3 py-2 border border-gray-300 rounded"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="First Name"
-                  required
-                  className="px-3 py-2 border border-gray-300 rounded"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Last Name"
-                  required
-                  className="px-3 py-2 border border-gray-300 rounded"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                >
-                  <option value="admin">Admin - Full access</option>
-                  <option value="editor">Editor - Create and edit products</option>
-                  <option value="approver">Approver - Approve products only</option>
-                  <option value="viewer">Viewer - Read-only access</option>
-                </select>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded">
-                <p className="text-sm text-blue-800">
-                  📧 An invitation email with a temporary password will be sent to the user.
-                </p>
-              </div>
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Create User
-              </button>
-            </form>
-          </div>
-        )}
 
         {loading ? (
           <div className="text-center py-12">
@@ -312,6 +253,90 @@ export default function UsersPage() {
         )}
         </div>
       </div>
+
+      {/* Create User Modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-lg shadow-xl">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Create New User</h3>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="text-gray-500 hover:text-gray-800"
+                aria-label="Close create user"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3">
+                  {error}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  required
+                  className="px-3 py-2 border border-gray-300 rounded"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  required
+                  className="px-3 py-2 border border-gray-300 rounded"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  required
+                  className="px-3 py-2 border border-gray-300 rounded"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  >
+                    <option value="admin">Admin - Full access</option>
+                    <option value="editor">Editor - Create and edit products</option>
+                    <option value="approver">Approver - Approve products only</option>
+                    <option value="viewer">Viewer - Read-only access</option>
+                  </select>
+                </div>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded">
+                <p className="text-sm text-blue-800">
+                  📧 An invitation email with a temporary password will be sent to the user.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Create User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
