@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
 
+# ALLOWED_HOSTS is parsed from a comma-separated env var for easier deployment config.
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
     default='127.0.0.1,localhost',
@@ -127,6 +128,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # --------------------------------------------------
 
 REST_FRAMEWORK = {
+    # Use JWT globally so API endpoints require authenticated access by default.
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -142,6 +144,7 @@ REST_FRAMEWORK = {
 # --------------------------------------------------
 
 SIMPLE_JWT = {
+    # Short-lived access tokens + refresh token rotation improves security posture.
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
@@ -154,6 +157,7 @@ SIMPLE_JWT = {
 # --------------------------------------------------
 
 CORS_ALLOWED_ORIGINS = [
+    # Frontend development origins.
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
