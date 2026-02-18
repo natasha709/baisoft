@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { Building2, Users, LayoutDashboard, MessageSquare } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -13,18 +14,27 @@ interface Product {
   price: string;
   status: 'draft' | 'pending_approval' | 'approved';
   created_by_email: string;
+  business: number;
+  business_name: string;
+}
+
+interface Business {
+  id: number;
+  name: string;
 }
 
 export default function Dashboard() {
   const { user, logout, hasPermission } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [products, setProducts] = useState<Product[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', description: '', price: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', price: '', business: '' });
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Product | null>(null);
-  const [editData, setEditData] = useState({ name: '', description: '', price: '' });
+  const [editData, setEditData] = useState({ name: '', description: '', price: '', business: '' });
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [viewing, setViewing] = useState<Product | null>(null);
@@ -38,17 +48,32 @@ export default function Dashboard() {
       return;
     }
     fetchProducts();
+    fetchBusinesses();
   }, [user, router]);
 
   const fetchProducts = async () => {
     try {
       const response = await api.get('/products/');
-      // Handle both paginated ({ results: [...] }) and direct array responses.
       setProducts(response.data.results || response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBusinesses = async () => {
+    try {
+      const response = await api.get('/auth/businesses/');
+      const data = response.data.results || response.data;
+      setBusinesses(data);
+
+      // Default to user's business if available
+      if (data.length > 0) {
+        setFormData(prev => ({ ...prev, business: data[0].id.toString() }));
+      }
+    } catch (err) {
+      console.error('Error fetching businesses:', err);
     }
   };
 
@@ -58,7 +83,7 @@ export default function Dashboard() {
 
     try {
       await api.post('/products/', formData);
-      setFormData({ name: '', description: '', price: '' });
+      setFormData({ name: '', description: '', price: '', business: businesses[0]?.id.toString() || '' });
       setShowCreateForm(false);
       fetchProducts();
     } catch (err: any) {
@@ -118,7 +143,12 @@ export default function Dashboard() {
     setEditError('');
     // Seed edit modal fields from selected product.
     setEditing(p);
-    setEditData({ name: p.name, description: p.description, price: p.price });
+    setEditData({
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      business: p.business.toString()
+    });
   };
 
   const closeEdit = () => {
@@ -160,36 +190,50 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
         </div>
 
-        <nav className="mt-6 flex-1 space-y-2">
+        <nav className="mt-6 flex-1 space-y-1">
+          <Link
+            href="/dashboard"
+            className={`flex items-center px-6 py-3 transition-colors ${pathname === '/dashboard'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              }`}
+          >
+            <LayoutDashboard className="w-5 h-5 mr-3" />
+            Products
+          </Link>
+
+          <Link
+            href="/business"
+            className={`flex items-center px-6 py-3 transition-colors ${pathname === '/business'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              }`}
+          >
+            <Building2 className="w-5 h-5 mr-3" />
+            Business
+          </Link>
+
           {user.role === 'admin' && (
             <Link
               href="/users"
-              className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
+              className={`flex items-center px-6 py-3 transition-colors ${pathname === '/users'
+                  ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                  : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                }`}
             >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
+              <Users className="w-5 h-5 mr-3" />
               Manage Users
             </Link>
           )}
 
           <Link
-            href="/dashboard"
-            className="flex items-center px-6 py-3 text-white bg-blue-600 border-r-4 border-blue-400"
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            Products
-          </Link>
-
-          <Link
             href="/chatbot"
-            className="flex items-center px-6 py-3 text-gray-300 hover:bg-[#002140] hover:text-white transition-colors"
+            className={`flex items-center px-6 py-3 transition-colors ${pathname === '/chatbot'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              }`}
           >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
+            <MessageSquare className="w-5 h-5 mr-3" />
             AI Chatbot
           </Link>
         </nav>
@@ -253,6 +297,9 @@ export default function Dashboard() {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Business
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                       Created By
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
@@ -278,6 +325,9 @@ export default function Dashboard() {
                         >
                           {product.status.replace('_', ' ')}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 font-medium">{product.business_name}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">{product.created_by_email}</div>
@@ -427,6 +477,22 @@ export default function Dashboard() {
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Business</label>
+                <select
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded bg-white"
+                  value={formData.business}
+                  onChange={(e) => setFormData({ ...formData, business: e.target.value })}
+                >
+                  <option value="" disabled>Select a business</option>
+                  {businesses.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -492,6 +558,22 @@ export default function Dashboard() {
                 onChange={(e) => setEditData({ ...editData, price: e.target.value })}
                 placeholder="Price"
               />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Business</label>
+                <select
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded bg-white"
+                  value={editData.business}
+                  onChange={(e) => setEditData({ ...editData, business: e.target.value })}
+                >
+                  <option value="" disabled>Select a business</option>
+                  {businesses.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -554,6 +636,13 @@ export default function Dashboard() {
                     {viewing.status.replace('_', ' ')}
                   </span>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Business</label>
+                  <p className="text-gray-900 font-medium">{viewing.business_name}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Created By</label>
                   <p className="text-gray-700">{viewing.created_by_email}</p>
