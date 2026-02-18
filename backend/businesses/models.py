@@ -4,12 +4,17 @@ from django.db import models
 
 class Business(models.Model):
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    can_create_users = models.BooleanField(default=True)
+    can_assign_roles = models.BooleanField(default=True)
+    owner = models.ForeignKey('User', on_delete=models.CASCADE, related_name='owned_businesses', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Businesses"
+        indexes = [
+            models.Index(fields=['owner']),
+        ]
 
     def __str__(self):
         return self.name

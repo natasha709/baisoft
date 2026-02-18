@@ -16,8 +16,16 @@ class UserManagementPermission(BasePermission):
         if user.is_superuser:
             return True
 
-        # Admin can do everything on the viewset
+        # Admin can manage users IF the business allows it
         if getattr(user, "role", None) == "admin":
+            business = getattr(user, "business", None)
+            if not business:
+                return False
+                
+            if view.action == "create" and not business.can_create_users:
+                return False
+            
+            # Note: Role assignment check is handled more granularly in the viewset or restricted here
             return True
 
         # Non-admin users: allow read-only access to self via retrieve

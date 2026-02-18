@@ -3,7 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import PermissionDenied
-from django.utils import timezone
+from django.db.models import Q
+from businesses.models import Business
 from .models import Product
 from .serializers import ProductSerializer, ProductCreateSerializer, PublicProductSerializer
 from .permissions import ProductPermission
@@ -31,8 +32,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.request.user.is_superuser:
             return Product.objects.all()
         
-        # Users see products from their business
-        return Product.objects.filter(business=self.request.user.business)
+        # Users see products from all businesses they have access to
+        return Product.objects.filter(
+            Q(business__owner=self.request.user) | 
+            Q(business=self.request.user.business)
+        ).distinct()
 
     def get_serializer_class(self):
         if self.action == 'list' and self.request.query_params.get('public') == 'true':
@@ -45,10 +49,19 @@ class ProductViewSet(viewsets.ModelViewSet):
         if not self.request.user.has_permission('create_product'):
             raise PermissionDenied("You don't have permission to create products")
         
-        # Superusers can select business, regular users are tied to their business
+        # Validate business selection
         business = serializer.validated_data.get('business')
-        if not self.request.user.is_superuser or not business:
-            business = self.request.user.business
+        
+        if not self.request.user.is_superuser:
+            # Check if user has access to this business
+            if business:
+                has_access = Business.objects.filter(
+                    Q(id=business.id) & (Q(owner=self.request.user) | Q(id=self.request.user.business_id))
+                ).exists()
+                if not has_access:
+                    raise PermissionDenied("You don't have access to this business")
+            else:
+                business = self.request.user.business
 
         serializer.save(
             created_by=self.request.user,

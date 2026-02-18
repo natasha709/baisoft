@@ -94,7 +94,44 @@ class BusinessViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Business.objects.all()
-        return Business.objects.filter(id=self.request.user.business_id)
+        # Return businesses owned by user OR where user is a member
+        return Business.objects.filter(
+            models.Q(owner=self.request.user) | 
+            models.Q(id=self.request.user.business_id)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        business = serializer.save(owner=self.request.user)
+        
+        # Support adding an initial user during company creation
+        initial_user_data = self.request.data.get('initial_user')
+        if initial_user_data:
+            email = initial_user_data.get('email')
+            first_name = initial_user_data.get('first_name', '')
+            last_name = initial_user_data.get('last_name', '')
+            role = initial_user_data.get('role', 'viewer')
+            
+            if email:
+                # Create the user linked to this new business
+                user = User.objects.create(
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role=role,
+                    business=business,
+                    password_change_required=True
+                )
+                
+                # Generate and set temporary password
+                temp_password = generate_temporary_password()
+                user.set_password(temp_password)
+                
+                # Set password change requirement and expiry
+                set_temporary_password_expiry(user)
+                user.save()
+                
+                # Send invitation email
+                send_invitation_email(user, temp_password, self.request.user)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -148,6 +185,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return
 
         # Admin can update users, but cannot move users across businesses.
+        # Also, check if they are trying to assign roles/permissions
+        new_role = serializer.validated_data.get('role')
+        if new_role and new_role != serializer.instance.role:
+            business = self.request.user.business
+            if not business or not business.can_assign_roles:
+                # Silently prevent role change or raise error? User requested "A business can: Assign roles/permissions"
+                # so if they can't, we should block it.
+                serializer.validated_data.pop('role', None)
+
         serializer.save(business=self.request.user.business)
 
     def perform_destroy(self, instance):

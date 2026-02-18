@@ -3,7 +3,7 @@ from .models import Product
 
 
 class PublicProductSerializer(serializers.ModelSerializer):
-    business_name = serializers.CharField(source='business.name', read_only=True)
+    business_name = serializers.CharField(source='business_name_snapshot', read_only=True)
 
     class Meta:
         model = Product
@@ -20,7 +20,7 @@ class PublicProductSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
     approved_by_email = serializers.EmailField(source='approved_by.email', read_only=True)
-    business_name = serializers.CharField(source='business.name', read_only=True)
+    business_name = serializers.CharField(source='business_name_snapshot', read_only=True)
 
     class Meta:
         model = Product
