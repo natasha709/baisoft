@@ -1,11 +1,12 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from django.db.models import Q
 from .models import Business, User
 from .serializers import BusinessSerializer, UserSerializer, RegisterSerializer, LoginSerializer, ChangePasswordSerializer
 from .email_service import generate_temporary_password, send_invitation_email, set_temporary_password_expiry
@@ -96,8 +97,8 @@ class BusinessViewSet(viewsets.ModelViewSet):
             return Business.objects.all()
         # Return businesses owned by user OR where user is a member
         return Business.objects.filter(
-            models.Q(owner=self.request.user) | 
-            models.Q(id=self.request.user.business_id)
+            Q(owner=self.request.user) | 
+            Q(id=self.request.user.business_id)
         ).distinct()
 
     def perform_create(self, serializer):
