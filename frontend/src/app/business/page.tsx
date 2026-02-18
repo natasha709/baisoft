@@ -5,20 +5,67 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { Building2, Save, AlertCircle, Users, LayoutDashboard, MessageSquare } from 'lucide-react';
+import {
+    Building2, Save, AlertCircle, Users, LayoutDashboard,
+    MessageSquare, UserPlus, Shield, Mail, Edit, Trash2,
+    CheckCircle2, XCircle, MoreVertical, TrendingUp
+} from 'lucide-react';
 
 interface BusinessData {
     id: number;
     name: string;
-    description: string;
+    can_create_users: boolean;
+    can_assign_roles: boolean;
 }
+
+interface User {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    status: string;
+}
+
+const ROLE_CHOICES = [
+    { value: 'admin', label: 'Admin', description: 'Full access to all settings' },
+    { value: 'editor', label: 'Editor', description: 'Can create and edit products' },
+    { value: 'approver', label: 'Approver', description: 'Can only approve products' },
+    { value: 'viewer', label: 'Viewer', description: 'Read-only access' },
+];
 
 export default function BusinessSettings() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const [business, setBusiness] = useState<BusinessData | null>(null);
-    const [formData, setFormData] = useState({ name: '', description: '' });
+    const [businesses, setBusinesses] = useState<BusinessData[]>([]);
+    const [activeTab, setActiveTab] = useState<'companies' | 'settings' | 'team'>('companies');
+    const [users, setUsers] = useState<User[]>([]);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        can_create_users: true,
+        can_assign_roles: true
+    });
+
+    const [userFormData, setUserFormData] = useState({
+        email: '',
+        first_name: '',
+        last_name: '',
+        role: 'viewer'
+    });
+
+    const [showUserModal, setShowUserModal] = useState(false);
+    const [showBusinessModal, setShowBusinessModal] = useState(false);
+    const [newBusinessData, setNewBusinessData] = useState({
+        name: '',
+        user_email: '',
+        user_first_name: '',
+        user_last_name: '',
+        user_role: 'viewer'
+    });
+    const [editingUser, setEditingUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -30,17 +77,37 @@ export default function BusinessSettings() {
             return;
         }
         fetchBusiness();
+        fetchUsers();
     }, [user, router]);
+
+    const fetchUsers = async (businessId?: number) => {
+        if (!businessId && !business?.id) return;
+        try {
+            const response = await api.get(`/auth/users/?business=${businessId || business?.id}`);
+            const data = response.data.results || response.data;
+            setUsers(data);
+        } catch (err) {
+            console.error('Error fetching users:', err);
+        }
+    };
 
     const fetchBusiness = async () => {
         try {
             const response = await api.get('/auth/businesses/');
-            // ViewSet returns array even for single result due to filter
             const data = response.data.results || response.data;
-            const b = Array.isArray(data) ? data[0] : data;
-            if (b) {
+            const bList = Array.isArray(data) ? data : [data];
+            setBusinesses(bList);
+
+            // Auto-select first business if none selected
+            if (bList.length > 0 && !business) {
+                const b = bList[0];
                 setBusiness(b);
-                setFormData({ name: b.name, description: b.description || '' });
+                setFormData({
+                    name: b.name,
+                    can_create_users: b.can_create_users,
+                    can_assign_roles: b.can_assign_roles
+                });
+                fetchUsers(b.id);
             }
         } catch (err) {
             console.error('Error fetching business:', err);
@@ -69,6 +136,90 @@ export default function BusinessSettings() {
         }
     };
 
+    const handleUserSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSaving(true);
+
+        try {
+            if (editingUser) {
+                await api.patch(`/auth/users/${editingUser.id}/`, {
+                    first_name: userFormData.first_name,
+                    last_name: userFormData.last_name,
+                    role: userFormData.role
+                });
+                setSuccess('User updated successfully');
+            } else {
+                await api.post('/auth/users/', {
+                    ...userFormData,
+                    business: business?.id
+                });
+                setSuccess('User invited successfully');
+            }
+            setShowUserModal(false);
+            setEditingUser(null);
+            setUserFormData({ email: '', first_name: '', last_name: '', role: 'viewer' });
+            fetchUsers();
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to process user request');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSelectBusiness = (b: BusinessData) => {
+        setBusiness(b);
+        setFormData({
+            name: b.name,
+            can_create_users: b.can_create_users,
+            can_assign_roles: b.can_assign_roles
+        });
+        setActiveTab('settings');
+        fetchUsers(b.id);
+    };
+
+    const handleCreateBusiness = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        setError('');
+        try {
+            await api.post('/auth/businesses/', {
+                name: newBusinessData.name,
+                initial_user: {
+                    email: newBusinessData.user_email,
+                    first_name: newBusinessData.user_first_name,
+                    last_name: newBusinessData.user_last_name,
+                    role: newBusinessData.user_role
+                }
+            });
+            setSuccess('Business and initial member created successfully');
+            setShowBusinessModal(false);
+            setNewBusinessData({
+                name: '',
+                user_email: '',
+                user_first_name: '',
+                user_last_name: '',
+                user_role: 'viewer'
+            });
+            fetchBusiness();
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to create business');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteUser = async (userId: number) => {
+        if (!window.confirm('Are you sure you want to remove this user?')) return;
+        try {
+            await api.delete(`/auth/users/${userId}/`);
+            setSuccess('User removed successfully');
+            fetchUsers();
+        } catch (err) {
+            setError('Failed to remove user');
+        }
+    };
+
     const handleLogout = () => {
         logout();
         router.push('/');
@@ -85,11 +236,24 @@ export default function BusinessSettings() {
                 </div>
 
                 <nav className="mt-6 flex-1 space-y-1">
+                    {user.role === 'admin' && (
+                        <Link
+                            href="/admin/dashboard"
+                            className={`flex items-center px-6 py-3 transition-colors ${pathname === '/admin/dashboard'
+                                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                                }`}
+                        >
+                            <TrendingUp className="w-5 h-5 mr-3" />
+                            Admin Dashboard
+                        </Link>
+                    )}
+
                     <Link
                         href="/dashboard"
                         className={`flex items-center px-6 py-3 transition-colors ${pathname === '/dashboard'
-                                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                            ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                            : 'text-gray-300 hover:bg-[#002140] hover:text-white'
                             }`}
                     >
                         <LayoutDashboard className="w-5 h-5 mr-3" />
@@ -99,8 +263,8 @@ export default function BusinessSettings() {
                     <Link
                         href="/business"
                         className={`flex items-center px-6 py-3 transition-colors ${pathname === '/business'
-                                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                            ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                            : 'text-gray-300 hover:bg-[#002140] hover:text-white'
                             }`}
                     >
                         <Building2 className="w-5 h-5 mr-3" />
@@ -111,8 +275,8 @@ export default function BusinessSettings() {
                         <Link
                             href="/users"
                             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/users'
-                                    ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                                    : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
                                 }`}
                         >
                             <Users className="w-5 h-5 mr-3" />
@@ -123,8 +287,8 @@ export default function BusinessSettings() {
                     <Link
                         href="/chatbot"
                         className={`flex items-center px-6 py-3 transition-colors ${pathname === '/chatbot'
-                                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                            ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                            : 'text-gray-300 hover:bg-[#002140] hover:text-white'
                             }`}
                     >
                         <MessageSquare className="w-5 h-5 mr-3" />
@@ -152,82 +316,504 @@ export default function BusinessSettings() {
 
             {/* Main Content */}
             <div className="flex-1 overflow-auto">
-                <div className="p-8 max-w-4xl">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Business Settings</h2>
+                <div className="p-8 max-w-6xl">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Business Management</h2>
+                            <p className="text-gray-500 mt-1">Configure your organization and manage your team.</p>
+                        </div>
+
+                    </div>
 
                     {loading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                            <p className="mt-4 text-gray-500 font-medium">Loading business data...</p>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                            <div className="p-6 sm:p-8">
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    {error && (
-                                        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-3">
-                                            <AlertCircle className="w-5 h-5" />
-                                            {error}
-                                        </div>
-                                    )}
+                        <div className="space-y-6">
+                            {(error || success) && (
+                                <div className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-300 ${error ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'
+                                    }`}>
+                                    {error ? <AlertCircle className="w-5 h-5 shrink-0" /> : <CheckCircle2 className="w-5 h-5 shrink-0" />}
+                                    <p className="text-sm font-medium">{error || success}</p>
+                                </div>
+                            )}
 
-                                    {success && (
-                                        <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-lg flex items-center gap-3">
-                                            <div className="bg-green-100 rounded-full p-1">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-                                            {success}
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            Business Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="Enter business name"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            Description
-                                        </label>
-                                        <textarea
-                                            rows={5}
-                                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm resize-none"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            placeholder="Tell us about your business..."
-                                        />
-                                    </div>
-
-                                    <div className="pt-4 flex justify-end">
+                            {activeTab === 'companies' ? (
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xl font-bold text-gray-900">Your Managed Companies ({businesses.length})</h3>
                                         <button
-                                            type="submit"
-                                            disabled={saving}
-                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all disabled:opacity-70"
+                                            onClick={() => {
+                                                setFormData({ ...formData, name: '' });
+                                                setShowBusinessModal(true);
+                                            }}
+                                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-600/20"
                                         >
-                                            {saving ? (
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            ) : (
-                                                <Save className="w-5 h-5" />
-                                            )}
-                                            {saving ? 'Saving changes...' : 'Save Settings'}
+                                            <Building2 className="w-4 h-4" />
+                                            Add Company
                                         </button>
                                     </div>
-                                </form>
-                            </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {businesses.map((b) => (
+                                            <div
+                                                key={b.id}
+                                                className={`p-6 rounded-2xl border-2 transition-all group ${business?.id === b.id ? 'border-blue-500 bg-blue-50/30' : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-lg'
+                                                    }`}
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className={`p-3 rounded-xl ${business?.id === b.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                                        <Building2 className="w-6 h-6" />
+                                                    </div>
+                                                    {business?.id === b.id && (
+                                                        <span className="bg-blue-100 text-blue-600 text-[10px] font-black uppercase px-2 py-1 rounded-md">Active</span>
+                                                    )}
+                                                </div>
+                                                <h4 className="text-lg font-bold text-gray-900 mb-1">{b.name}</h4>
+                                                <div className="flex items-center gap-4 mt-4">
+                                                    <button
+                                                        onClick={() => handleSelectBusiness(b)}
+                                                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${business?.id === b.id
+                                                            ? 'bg-blue-600 text-white'
+                                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                            }`}
+                                                    >
+                                                        View
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : activeTab === 'settings' ? (
+                                <div className="space-y-6">
+                                    <button
+                                        onClick={() => setActiveTab('companies')}
+                                        className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-bold transition-colors group mb-4"
+                                    >
+                                        <div className="p-2 bg-white rounded-lg border border-gray-100 group-hover:bg-blue-50 transition-colors">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                            </svg>
+                                        </div>
+                                        Back to Companies
+                                    </button>
+
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <button
+                                            onClick={() => setActiveTab('settings')}
+                                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            General Settings
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('team')}
+                                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'team' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            Team Management
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-white rounded-2xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-hidden">
+                                        <div className="p-8">
+                                            {business ? (
+                                                <form onSubmit={handleSubmit} className="space-y-8">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                                            <Building2 className="w-4 h-4" />
+                                                            Legal Business Name
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                                                            value={formData.name}
+                                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                            placeholder="e.g. Acme Corporation"
+                                                            required
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2 uppercase tracking-wider">
+                                                            <Shield className="w-4 h-4" />
+                                                            Business Capabilities
+                                                        </label>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            <div className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${formData.can_create_users ? 'border-blue-500 bg-blue-50/30' : 'border-gray-100 bg-gray-50/50'
+                                                                }`} onClick={() => setFormData({ ...formData, can_create_users: !formData.can_create_users })}>
+                                                                <div className={`p-2 rounded-lg ${formData.can_create_users ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                                                    <UserPlus className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-bold text-gray-900">User Creation</h4>
+                                                                    <p className="text-xs text-gray-500 mt-1">Allow your organization to scale by inviting new team members.</p>
+                                                                </div>
+                                                                <input type="checkbox" className="hidden" checked={formData.can_create_users} readOnly />
+                                                            </div>
+
+                                                            <div className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${formData.can_assign_roles ? 'border-blue-500 bg-blue-50/30' : 'border-gray-100 bg-gray-50/50'
+                                                                }`} onClick={() => setFormData({ ...formData, can_assign_roles: !formData.can_assign_roles })}>
+                                                                <div className={`p-2 rounded-lg ${formData.can_assign_roles ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                                                    <Shield className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-bold text-gray-900">Role Management</h4>
+                                                                    <p className="text-xs text-gray-500 mt-1">Fine-tune permissions and access levels for all staff.</p>
+                                                                </div>
+                                                                <input type="checkbox" className="hidden" checked={formData.can_assign_roles} readOnly />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex justify-end pt-4">
+                                                        <button
+                                                            type="submit"
+                                                            disabled={saving}
+                                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all disabled:opacity-70"
+                                                        >
+                                                            {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
+                                                            {saving ? 'Applying Changes...' : 'Save Business'}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            ) : (
+                                                <div className="text-center py-12">
+                                                    <p className="text-gray-500">Please select a company from the Companies tab first.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <button
+                                        onClick={() => setActiveTab('companies')}
+                                        className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-bold transition-colors group mb-4"
+                                    >
+                                        <div className="p-2 bg-white rounded-lg border border-gray-100 group-hover:bg-blue-50 transition-colors">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                            </svg>
+                                        </div>
+                                        Back to Companies
+                                    </button>
+
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <button
+                                            onClick={() => setActiveTab('settings')}
+                                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            General Settings
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('team')}
+                                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'team' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                                        >
+                                            Team Management
+                                        </button>
+                                    </div>
+
+                                    {business ? (
+                                        <>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-xl font-bold text-gray-900">Team Members for {business.name} ({users.length})</h3>
+                                                {business.can_create_users && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingUser(null);
+                                                            setUserFormData({ email: '', first_name: '', last_name: '', role: 'viewer' });
+                                                            setShowUserModal(true);
+                                                        }}
+                                                        className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all active:scale-95"
+                                                    >
+                                                        <UserPlus className="w-4 h-4" />
+                                                        Add Member
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-white rounded-2xl shadow-xl shadow-blue-900/5 border border-gray-100 overflow-hidden">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left">
+                                                        <thead>
+                                                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                                                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Member</th>
+                                                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
+                                                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-50">
+                                                            {users.map((u) => (
+                                                                <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                                                                    <td className="px-6 py-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                                                                {u.first_name[0]}{u.last_name[0]}
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="font-bold text-gray-900">{u.first_name} {u.last_name}</div>
+                                                                                <div className="text-xs text-gray-400">{u.email}</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-6 py-4">
+                                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-100 text-purple-600' :
+                                                                            u.role === 'editor' ? 'bg-blue-100 text-blue-600' :
+                                                                                u.role === 'approver' ? 'bg-amber-100 text-amber-600' :
+                                                                                    'bg-gray-100 text-gray-600'
+                                                                            }`}>
+                                                                            {u.role}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 text-right">
+                                                                        <div className="flex items-center justify-end gap-2">
+                                                                            {business.can_assign_roles && (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setEditingUser(u);
+                                                                                        setUserFormData({
+                                                                                            email: u.email,
+                                                                                            first_name: u.first_name,
+                                                                                            last_name: u.last_name,
+                                                                                            role: u.role
+                                                                                        });
+                                                                                        setShowUserModal(true);
+                                                                                    }}
+                                                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                                                >
+                                                                                    <Edit className="w-4 h-4" />
+                                                                                </button>
+                                                                            )}
+                                                                            <button
+                                                                                onClick={() => handleDeleteUser(u.id)}
+                                                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Please select a company from the Companies tab first.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Business Modal */}
+            {showBusinessModal && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+                        <div className="px-8 py-6 bg-gray-50 border-b flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-gray-900">Add New Company</h3>
+                            <button onClick={() => setShowBusinessModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateBusiness} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto">
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b pb-2">Business Information</h4>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Company Name</label>
+                                    <div className="relative">
+                                        <Building2 className="absolute left-4 top-3.5 w-4 h-4 text-gray-400" />
+                                        <input
+                                            required
+                                            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            placeholder="e.g. Acme Ltd"
+                                            value={newBusinessData.name}
+                                            onChange={(e) => setNewBusinessData({ ...newBusinessData, name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4">
+                                <h4 className="text-sm font-black uppercase text-gray-400 tracking-widest border-b pb-2">Initial Team Member</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">First Name</label>
+                                        <input
+                                            required
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            placeholder="John"
+                                            value={newBusinessData.user_first_name}
+                                            onChange={(e) => setNewBusinessData({ ...newBusinessData, user_first_name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">Last Name</label>
+                                        <input
+                                            required
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            placeholder="Doe"
+                                            value={newBusinessData.user_last_name}
+                                            onChange={(e) => setNewBusinessData({ ...newBusinessData, user_last_name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Email Address</label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-4 top-3.5 w-4 h-4 text-gray-400" />
+                                        <input
+                                            required
+                                            type="email"
+                                            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            placeholder="john@example.com"
+                                            value={newBusinessData.user_email}
+                                            onChange={(e) => setNewBusinessData({ ...newBusinessData, user_email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Role</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {ROLE_CHOICES.map((role) => (
+                                            <label key={role.value} className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${newBusinessData.user_role === role.value ? 'border-blue-500 bg-blue-50/50' : 'border-gray-50 hover:bg-gray-50'
+                                                }`}>
+                                                <input
+                                                    type="radio"
+                                                    checked={newBusinessData.user_role === role.value}
+                                                    onChange={() => setNewBusinessData({ ...newBusinessData, user_role: role.value })}
+                                                    className="w-4 h-4 text-blue-600"
+                                                />
+                                                <span className="text-xs font-bold text-gray-900">{role.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 flex gap-3 sticky bottom-0 bg-white pb-2 border-t mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBusinessModal(false)}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {saving ? 'Creating...' : 'Create Company'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* User Modal */}
+            {showUserModal && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
+                        <div className="px-8 py-6 bg-gray-50 border-b flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-gray-900">
+                                {editingUser ? 'Edit Team Member' : 'Invite New Member'}
+                            </h3>
+                            <button onClick={() => setShowUserModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUserSubmit} className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">First Name</label>
+                                    <input
+                                        required
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        value={userFormData.first_name}
+                                        onChange={(e) => setUserFormData({ ...userFormData, first_name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Last Name</label>
+                                    <input
+                                        required
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        value={userFormData.last_name}
+                                        onChange={(e) => setUserFormData({ ...userFormData, last_name: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Email Address</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-4 top-3.5 w-4 h-4 text-gray-400" />
+                                    <input
+                                        required
+                                        type="email"
+                                        disabled={!!editingUser}
+                                        className={`w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all ${editingUser ? 'bg-gray-100 text-gray-500' : ''
+                                            }`}
+                                        value={userFormData.email}
+                                        onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Assign Role</label>
+                                <div className="grid grid-cols-1 gap-3">
+                                    {ROLE_CHOICES.map((role) => (
+                                        <label key={role.value} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${userFormData.role === role.value ? 'border-blue-500 bg-blue-50/50' : 'border-gray-50 hover:bg-gray-50'
+                                            }`}>
+                                            <input
+                                                type="radio"
+                                                className="mt-1"
+                                                checked={userFormData.role === role.value}
+                                                onChange={() => setUserFormData({ ...userFormData, role: role.value })}
+                                            />
+                                            <div>
+                                                <div className="text-sm font-bold text-gray-900">{role.label}</div>
+                                                <div className="text-[10px] text-gray-500">{role.description}</div>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUserModal(false)}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {saving ? 'Processing...' : (editingUser ? 'Save Updates' : 'Send Invite')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

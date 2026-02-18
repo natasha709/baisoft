@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import Link from 'next/link';
 
-import { Building2, MessageSquare, LayoutDashboard, Share2, Users } from 'lucide-react';
+import { Building2, MessageSquare, LayoutDashboard, Share2, Users, TrendingUp } from 'lucide-react';
 
 interface Message {
   id?: number;
@@ -87,11 +87,24 @@ export default function Chatbot() {
         </div>
 
         <nav className="mt-6 flex-1 space-y-1">
+          {user.role === 'admin' && (
+            <Link
+              href="/admin/dashboard"
+              className={`flex items-center px-6 py-3 transition-colors ${pathname === '/admin/dashboard'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                }`}
+            >
+              <TrendingUp className="w-5 h-5 mr-3" />
+              Admin Dashboard
+            </Link>
+          )}
+
           <Link
             href="/dashboard"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/dashboard'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+              : 'text-gray-300 hover:bg-[#002140] hover:text-white'
               }`}
           >
             <LayoutDashboard className="w-5 h-5 mr-3" />
@@ -101,8 +114,8 @@ export default function Chatbot() {
           <Link
             href="/business"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/business'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+              : 'text-gray-300 hover:bg-[#002140] hover:text-white'
               }`}
           >
             <Building2 className="w-5 h-5 mr-3" />
@@ -113,8 +126,8 @@ export default function Chatbot() {
             <Link
               href="/users"
               className={`flex items-center px-6 py-3 transition-colors ${pathname === '/users'
-                  ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                  : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
                 }`}
             >
               <Users className="w-5 h-5 mr-3" />
@@ -125,8 +138,8 @@ export default function Chatbot() {
           <Link
             href="/chatbot"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/chatbot'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+              : 'text-gray-300 hover:bg-[#002140] hover:text-white'
               }`}
           >
             <MessageSquare className="w-5 h-5 mr-3" />

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { Edit, Trash2, Building2, Users, LayoutDashboard, MessageSquare } from 'lucide-react';
+import { Edit, Trash2, Building2, Users, LayoutDashboard, MessageSquare, TrendingUp } from 'lucide-react';
 
 interface User {
   id: number;
@@ -175,11 +175,24 @@ export default function UsersPage() {
         </div>
 
         <nav className="mt-6 flex-1 space-y-1">
+          {user.role === 'admin' && (
+            <Link
+              href="/admin/dashboard"
+              className={`flex items-center px-6 py-3 transition-colors ${pathname === '/admin/dashboard'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                }`}
+            >
+              <TrendingUp className="w-5 h-5 mr-3" />
+              Admin Dashboard
+            </Link>
+          )}
+
           <Link
             href="/dashboard"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/dashboard'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+              : 'text-gray-300 hover:bg-[#002140] hover:text-white'
               }`}
           >
             <LayoutDashboard className="w-5 h-5 mr-3" />
@@ -189,8 +202,8 @@ export default function UsersPage() {
           <Link
             href="/business"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/business'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+              : 'text-gray-300 hover:bg-[#002140] hover:text-white'
               }`}
           >
             <Building2 className="w-5 h-5 mr-3" />
@@ -201,8 +214,8 @@ export default function UsersPage() {
             <Link
               href="/users"
               className={`flex items-center px-6 py-3 transition-colors ${pathname === '/users'
-                  ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                  : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
                 }`}
             >
               <Users className="w-5 h-5 mr-3" />
@@ -213,8 +226,8 @@ export default function UsersPage() {
           <Link
             href="/chatbot"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/chatbot'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+              ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+              : 'text-gray-300 hover:bg-[#002140] hover:text-white'
               }`}
           >
             <MessageSquare className="w-5 h-5 mr-3" />
