@@ -45,15 +45,25 @@ class ProductViewSet(viewsets.ModelViewSet):
         if not self.request.user.has_permission('create_product'):
             raise PermissionDenied("You don't have permission to create products")
         
+        # Superusers can select business, regular users are tied to their business
+        business = serializer.validated_data.get('business')
+        if not self.request.user.is_superuser or not business:
+            business = self.request.user.business
+
         serializer.save(
             created_by=self.request.user,
-            business=self.request.user.business,
+            business=business,
             status='draft'
         )
 
     def perform_update(self, serializer):
         if not self.request.user.has_permission('edit_product'):
             raise PermissionDenied("You don't have permission to edit products")
+        
+        # Prevent non-superusers from changing the business
+        if not self.request.user.is_superuser:
+            serializer.validated_data.pop('business', None)
+            
         serializer.save()
 
     def perform_destroy(self, instance):
