@@ -205,6 +205,19 @@ export default function Dashboard() {
             </Link>
           )}
 
+          {user.role === 'admin' && (
+            <Link
+              href="/users"
+              className={`flex items-center px-6 py-3 transition-colors ${pathname === '/users'
+                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
+                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
+                }`}
+            >
+              <Users className="w-5 h-5 mr-3" />
+              Manage Users
+            </Link>
+          )}
+
           <Link
             href="/dashboard"
             className={`flex items-center px-6 py-3 transition-colors ${pathname === '/dashboard'
@@ -226,19 +239,6 @@ export default function Dashboard() {
             <Building2 className="w-5 h-5 mr-3" />
             Business
           </Link>
-
-          {user.role === 'admin' && (
-            <Link
-              href="/users"
-              className={`flex items-center px-6 py-3 transition-colors ${pathname === '/users'
-                ? 'text-white bg-blue-600 border-r-4 border-blue-400'
-                : 'text-gray-300 hover:bg-[#002140] hover:text-white'
-                }`}
-            >
-              <Users className="w-5 h-5 mr-3" />
-              Manage Users
-            </Link>
-          )}
 
           <Link
             href="/chatbot"
