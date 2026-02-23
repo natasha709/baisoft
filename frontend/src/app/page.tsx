@@ -1,126 +1,89 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-
-type PublicProduct = {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  business_name?: string;
-};
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+import { ShoppingCart, Lock } from 'lucide-react';
 
 export default function Home() {
-  const [products, setProducts] = useState<PublicProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    const fetchApproved = async () => {
-      try {
-        setError('');
-        const res = await fetch(`${API_URL}/products/?public=true`, {
-          cache: 'no-store',
-        });
-        if (!res.ok) throw new Error(`Failed to load products (${res.status})`);
-        const data = await res.json();
-        setProducts(Array.isArray(data) ? data : (data.results || []));
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load products');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchApproved();
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => {
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        (p.business_name || '').toLowerCase().includes(q)
-      );
-    });
-  }, [products, query]);
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Product Marketplace</h1>
-            <p className="text-sm text-gray-600">Browse approved products available to the public.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-            >
-              Login
-            </Link>
-            <Link
-              href="/register"
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Register
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <div className="text-sm text-gray-600">
-              {loading ? 'Loading…' : `${filtered.length} product(s)`}
-            </div>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products…"
-              className="w-full sm:w-80 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-6">
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-            <p className="text-gray-600">No approved products yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((p) => (
-              <div key={p.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{p.name}</h3>
-                  <div className="text-lg font-bold text-blue-600">${p.price}</div>
-                </div>
-                {p.business_name && (
-                  <div className="text-xs text-gray-500 mt-1">Business: {p.business_name}</div>
-                )}
-                <p className="text-sm text-gray-700 mt-3 line-clamp-4">{p.description}</p>
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                <ShoppingCart className="w-6 h-6 text-[#001529]" />
               </div>
-            ))}
+              <span className="ml-3 text-xl font-bold text-white">BAISoft</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="px-4 py-2 text-gray-300 hover:text-white font-medium transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="px-5 py-2.5 rounded-lg bg-white text-gray-900 font-medium hover:bg-gray-100 transition-all"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
-        )}
-      </main>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50"></div>
+        <div className="absolute top-20 right-0 w-96 h-96 bg-[#001529]/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight mb-6">
+              Welcome to
+              <span className="text-[#001529]"> BAISoft</span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+              Internal Product Management System
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/login"
+                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#001529] text-white font-semibold text-lg hover:bg-[#002140] transition-all shadow-xl shadow-[#001529]/20 flex items-center justify-center"
+              >
+                <Lock className="w-5 h-5 mr-2" />
+                Login to Access
+              </Link>
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-8 py-4 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-lg hover:border-[#001529] hover:text-[#001529] transition-all flex items-center justify-center"
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-8 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5 text-[#001529]" />
+              </div>
+              <span className="ml-3 text-lg font-bold">BAISoft</span>
+            </div>
+            <p className="text-gray-400 text-sm">
+              © 2024 BAISoft. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

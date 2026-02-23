@@ -23,6 +23,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     authLogout();
     setUser(null);
+
+    // Always send users to landing page after logout.
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   const hasPermission = (permission: string): boolean => {
