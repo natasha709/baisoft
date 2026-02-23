@@ -5,7 +5,7 @@ import { ShoppingCart, Lock } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col pb-28">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,7 +49,7 @@ export default function Home() {
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
               Internal Product Management System
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-16 sm:mt-20 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/login"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#001529] text-white font-semibold text-lg hover:bg-[#002140] transition-all shadow-xl shadow-[#001529]/20 flex items-center justify-center"
@@ -69,7 +69,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-auto">
+      <footer className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
@@ -87,3 +87,4 @@ export default function Home() {
     </div>
   );
 }
+
