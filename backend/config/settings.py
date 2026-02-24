@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     # Security middleware first
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     
     # Django authentication middleware must come BEFORE custom middleware
