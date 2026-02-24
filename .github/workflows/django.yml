@@ -28,4 +28,4 @@ jobs:
         cd backend && pip install -r requirements.txt pytest pytest-django pytest-cov
     - name: Run Tests
       run: |
-        cd backend && PYTHONPATH=${{ github.workspace }}/backend:${{ github.workspace }} pytest --cov=. --cov-report=term --no-header -v
+        cd backend && pytest --cov=. --cov-report=term --no-header -v
