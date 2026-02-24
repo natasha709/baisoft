@@ -6,6 +6,8 @@ drf-spectacular==0.27.2
 python-decouple==3.8
 openai>=1.30.0
 python-dotenv==1.0.0
+gunicorn==21.2.0
+whitenoise==6.6.0
 
 # Optional (PostgreSQL). Install only if you switch DATABASES to Postgres:
 # - Windows + Python 3.13 may require build tools for psycopg2.
