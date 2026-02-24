@@ -19,7 +19,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 # ALLOWED_HOSTS is parsed from a comma-separated env var for easier deployment config.
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='127.0.0.1,localhost',
+    default='127.0.0.1,localhost,testserver',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
@@ -163,8 +163,8 @@ REST_FRAMEWORK = {
     # API Schema (drf-spectacular)
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     
-    # Exception handler for consistent error responses
-    'EXCEPTION_HANDLER': 'drf_spectacular.contrib.exception_handler.get_exception_handler',
+    # Exception handler - using default DRF handler (the drf_spectacular contrib module doesn't exist)
+    # 'EXCEPTION_HANDLER': 'drf_spectacular.contrib.exception_handler.get_exception_handler',
     
     # Throttling (built-in Django REST framework throttling)
     'DEFAULT_THROTTLE_CLASSES': [
