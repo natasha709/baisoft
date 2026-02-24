@@ -27,7 +27,7 @@ jobs:
   # Backend Tests
   # ============================================
   backend-test:
-    name: Backend Test (Python ${{ env.PYTHON_VERSION }})
+    name: Backend Test (Python 3.11)
     runs-on: ubuntu-latest
     
     services:
@@ -90,7 +90,7 @@ jobs:
   # Frontend Tests
   # ============================================
   frontend-test:
-    name: Frontend Test (Node ${{ env.NODE_VERSION }})
+    name: Frontend Test (Node 18)
     runs-on: ubuntu-latest
 
     steps:
