@@ -1,0 +1,3 @@
+# Django backend dependencies
+# See backend/requirements.txt for full list
+-r backend/requirements.txt
