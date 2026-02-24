@@ -164,7 +164,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     
     # Exception handler for consistent error responses
-    'EXCEPTION_HANDLER': 'drf_spectacular.contrib.exception_handler.get_exception_handler',
+    # 'EXCEPTION_HANDLER': 'drf_spectacular.contrib.exception_handler.get_exception_handler',
     
     # Throttling (built-in Django REST framework throttling)
     'DEFAULT_THROTTLE_CLASSES': [

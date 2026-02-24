@@ -38,6 +38,12 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
+    business = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(),  # This will be overridden in view
+        required=False,
+        allow_null=True
+    )
+    
     class Meta:
         model = Product
         fields = ['name', 'description', 'price', 'business']
