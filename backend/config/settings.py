@@ -1,11 +1,18 @@
 import os
 import logging.config
+import sys
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
 
 # Import custom logging configuration
-from config.logging import configure_logging
+# Handle import error for pytest which may have different path setup
+try:
+    from config.logging import configure_logging
+except ImportError:
+    # Fallback for when config.logging is not available (e.g., during pytest)
+    def configure_logging():
+        pass
 
 # --------------------------------------------------
 # BASE CONFIG
