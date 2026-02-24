@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from businesses.models import Business
 from .models import Product
 
 
@@ -38,6 +39,14 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
+    # Make business optional - the view's perform_create will handle 
+    # assigning the business from the user's business if not provided
+    business = serializers.PrimaryKeyRelatedField(
+        queryset=Business.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = Product
         fields = ['name', 'description', 'price', 'business']
