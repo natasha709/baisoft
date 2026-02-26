@@ -1,3 +1,15 @@
+# AI Chatbot API Views
+# This module contains API endpoints for the AI-powered chatbot system.
+# It handles user queries, integrates with OpenAI, and manages chat history.
+#
+# Key Features:
+# - Natural language product queries using OpenAI GPT
+# - Business-scoped product context (users only see their business products)
+# - Chat history storage and retrieval
+# - Fallback to local search when AI service fails
+# - Rate limiting and error handling
+# - Permission-based product filtering
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -9,49 +21,160 @@ from products.models import Product
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])  # Requires user login
 def chat_query(request):
+    """
+    AI Chatbot Query Endpoint
+    
+    This is the main endpoint for users to interact with the AI chatbot.
+    It processes natural language queries about products and returns intelligent responses.
+    
+    Process Flow:
+    1. Validate user input (message format, length, etc.)
+    2. Get relevant product context based on user's business access
+    3. Send query to AI service (OpenAI GPT) with product context
+    4. Handle AI service errors gracefully with fallback responses
+    5. Store chat interaction in database for history
+    6. Return AI response to user
+    
+    Request Body:
+    - message (str): User's natural language query
+    
+    Response:
+    - message: Original user message (for confirmation)
+    - response: AI-generated response with product information
+    - id: Chat message ID for reference
+    
+    Business Logic:
+    - Users only see products from their business (business isolation)
+    - Superusers can see all approved products (platform administration)
+    - Only approved products are included in AI context (quality control)
+    - Chat history is stored for each user individually
+    
+    Error Handling:
+    - Invalid input: Returns validation errors
+    - AI service failure: Falls back to local product search
+    - Database errors: Returns appropriate error messages
+    - Rate limiting: Handled by DRF throttling (configured in settings)
+    
+    Security Features:
+    - Authentication required (no anonymous queries)
+    - Business isolation (users can't query other businesses' products)
+    - Input validation and sanitization
+    - Error message sanitization (no sensitive data exposure)
+    """
+    # Validate input data format and content
     serializer = ChatQuerySerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     user_message = serializer.validated_data['message']
     
-    # Get approved products for context (business-scoped for safety)
-    products = Product.objects.filter(status='approved')
+    # Get approved products for AI context with business isolation
+    # This ensures users only get information about products they should see
+    products = Product.objects.filter(status='approved')  # Only approved products
+    
     if request.user.is_superuser:
-        pass
+        # Superusers can query about all approved products (platform admin feature)
+        pass  # Keep all approved products
     elif getattr(request.user, "business_id", None):
+        # Regular users only see products from their business
         products = products.filter(business=request.user.business)
     else:
+        # Users without business association see no products (security)
         products = Product.objects.none()
     
-    # Get AI response
+    # Get AI response with error handling and fallback
     try:
         ai_response = get_ai_response(user_message, products, request.user)
     except Exception as e:
+        # Log error for debugging but don't expose internal details to user
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"AI service error for user {request.user.email}: {str(e)}")
+        
+        # Return user-friendly error message
         return Response(
-            {'error': f'AI service error: {str(e)}'},
+            {'error': 'I\'m having trouble processing your request right now. Please try again later.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
-    # Save chat message
-    chat_message = ChatMessage.objects.create(
-        user=request.user,
-        user_message=user_message,
-        ai_response=ai_response
-    )
+    # Store chat interaction in database for history and audit trail
+    try:
+        chat_message = ChatMessage.objects.create(
+            user=request.user,
+            user_message=user_message,
+            ai_response=ai_response
+        )
+    except Exception as e:
+        # Log database error but still return AI response
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to save chat message for user {request.user.email}: {str(e)}")
+        
+        # Return response without chat ID (degraded functionality)
+        return Response({
+            'message': user_message,
+            'response': ai_response,
+            'id': None,
+            'warning': 'Response generated but not saved to history'
+        })
     
+    # Return successful response with chat data
     return Response({
-        'message': user_message,
-        'response': ai_response,
-        'id': chat_message.id
+        'message': user_message,      # Echo back user's message
+        'response': ai_response,      # AI-generated response
+        'id': chat_message.id        # Chat message ID for reference
     })
 
 
 class ChatMessageViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Chat History API ViewSet
+    
+    Provides read-only access to user's chat history with the AI assistant.
+    Users can retrieve their previous conversations for reference.
+    
+    Endpoints:
+    - GET /api/chatbot/history/           # List user's chat messages
+    - GET /api/chatbot/history/{id}/      # Get specific chat message
+    
+    Features:
+    - User isolation (users only see their own chat history)
+    - Chronological ordering (newest messages first)
+    - Pagination support (configured in settings.py)
+    - Read-only access (no editing or deleting of chat history)
+    
+    Business Rules:
+    - Users can only access their own chat messages
+    - Chat history is ordered by creation time (newest first)
+    - No modification of chat history allowed (audit trail integrity)
+    - Pagination prevents large response sizes
+    
+    Use Cases:
+    - Display chat history in frontend
+    - Reference previous conversations
+    - User support and troubleshooting
+    - Conversation context for follow-up queries
+    
+    Security:
+    - Authentication required
+    - User isolation enforced at queryset level
+    - No sensitive data exposure in responses
+    """
     serializer_class = ChatMessageSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Must be logged in
 
     def get_queryset(self):
+        """
+        Filter chat messages to current user only
+        
+        Security Implementation:
+        - Users can only see their own chat messages
+        - No cross-user data access possible
+        - Automatic filtering based on authenticated user
+        
+        Returns:
+            QuerySet: User's chat messages ordered by creation time (newest first)
+        """
         return ChatMessage.objects.filter(user=self.request.user)

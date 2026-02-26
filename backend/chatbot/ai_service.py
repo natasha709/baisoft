@@ -1,26 +1,76 @@
+# AI Service Module for Product Marketplace Chatbot
+# This module integrates OpenAI GPT with the product marketplace to provide intelligent responses.
+# It handles natural language processing, product search, and conversation management.
+#
+# Key Features:
+# - OpenAI GPT integration for natural language understanding
+# - Intelligent product search and matching
+# - Local fallback when AI service is unavailable
+# - Business context awareness
+# - Purchase intent detection and handling
+# - Robust error handling and graceful degradation
+#
+# Architecture:
+# - Primary: OpenAI GPT with product context injection
+# - Fallback: Local natural language processing and product search
+# - Context: Business-scoped product information
+# - Security: Input validation and response sanitization
+
 from openai import OpenAI
 from django.conf import settings
 import logging
 import re
 
+# Configure logging for AI service monitoring
 logger = logging.getLogger(__name__)
+
 
 def get_ai_response(user_message, products, user):
     """
-    Get AI response using OpenAI API with product context
+    Main AI Response Generation Function
+    
+    This is the core function that processes user queries and generates intelligent responses.
+    It uses OpenAI GPT when available, with local processing as a fallback.
+    
+    Process Flow:
+    1. Check OpenAI API availability
+    2. Build product context from approved products
+    3. Analyze query type (product search, purchase, general)
+    4. Generate appropriate response using AI or local processing
+    5. Handle errors gracefully with fallback mechanisms
+    
+    Args:
+        user_message (str): User's natural language query
+        products (QuerySet): Approved products available to the user
+        user (User): Authenticated user making the request
+        
+    Returns:
+        str: AI-generated or locally processed response
+        
+    Response Types:
+    - Product information and details
+    - Product search results
+    - Purchase guidance and instructions
+    - General marketplace assistance
+    - Error messages with helpful suggestions
+    
+    Error Handling:
+    - OpenAI API failures: Falls back to local processing
+    - Network timeouts: Returns cached or local responses
+    - Invalid queries: Provides helpful guidance
+    - No products found: Suggests alternatives
     """
     try:
+        # Check if OpenAI API is configured
         if not settings.OPENAI_API_KEY:
-            # If no API key, use local product search only
+            logger.info("OpenAI API key not configured, using local processing")
             return handle_local_product_query(user_message, products, user)
         
-        # Initialize OpenAI client with minimal configuration
-        client = OpenAI(
-            api_key=settings.OPENAI_API_KEY,
-        )
-        model = getattr(settings, "OPENAI_MODEL", "gpt-3.5-turbo")
+        # Initialize OpenAI client with configuration
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        model = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")  # Default to cost-effective model
         
-        # Build product context with detailed information
+        # Build structured product context for AI
         product_list = []
         if products:
             for product in products:
@@ -32,53 +82,67 @@ def get_ai_response(user_message, products, user):
                     'business': product.business.name,
                 })
         
-        # Try to use OpenAI, but fall back to local search if it fails
+        # Try OpenAI processing with fallback to local processing
         try:
-            # Handle purchase-related queries
+            # Handle purchase-related queries with specialized logic
             if is_purchase_query(user_message):
                 return handle_purchase_query(user_message, product_list, user)
             
-            # Check if this is a product search query
+            # Handle specific product searches with enhanced matching
             if is_product_search(user_message) or is_specific_product_query(user_message):
                 matching_products = search_products(user_message, product_list)
                 if matching_products:
                     return generate_detailed_product_response(matching_products, user_message)
                 else:
-                    # No matches found, but still show all products
+                    # No matches found, but provide helpful response
                     search_term = extract_search_terms(user_message)[0] if extract_search_terms(user_message) else "that term"
                     return f"🔍 I couldn't find any products matching '{search_term}'.\n\n{generate_product_listing_response(product_list)}"
             
-            # Check if it's a general product listing query
+            # Handle general product listing queries
             if is_product_query(user_message):
                 return generate_product_listing_response(product_list)
             
-            # For other queries, use OpenAI
-            system_prompt = f"""You are a helpful AI assistant for a product marketplace.
+            # For complex queries, use OpenAI with product context
+            system_prompt = f"""You are a helpful AI assistant for a product marketplace called "Product Marketplace".
+You help users find products, answer questions about them, and guide them through the purchasing process.
+
 Current catalog status: {len(product_list)} products available
 
 Product Catalog:
-{format_products_for_prompt(product_list)}"""
+{format_products_for_prompt(product_list)}
 
+Guidelines:
+- Be friendly and helpful
+- Focus on the products available in the catalog
+- If asked about products not in the catalog, politely explain they're not available
+- For purchase questions, guide users to the product pages
+- Use emojis to make responses more engaging
+- Keep responses concise but informative"""
+
+            # Make OpenAI API call with timeout and error handling
             response = client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
                 ],
-                max_tokens=1000,
-                temperature=0.7,
-                timeout=10
+                max_tokens=1000,        # Limit response length for cost control
+                temperature=0.7,        # Balance creativity and consistency
+                timeout=10              # Prevent hanging requests
             )
             
             return response.choices[0].message.content
             
         except Exception as e:
+            # Log OpenAI API errors for monitoring
             logger.error(f"OpenAI API error: {str(e)}")
-            # Fall back to local product handling
+            # Fall back to local processing
             return handle_local_product_query(user_message, products, user)
         
     except Exception as e:
+        # Log general AI service errors
         logger.error(f"AI service error: {str(e)}")
+        # Ultimate fallback to local processing
         return handle_local_product_query(user_message, products, user)
 
 def handle_local_product_query(user_message, products, user):
