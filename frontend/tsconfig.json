@@ -1,27 +1,49 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
+    /* Language and Environment */
+    "target": "ES2017",                          /* Set the JavaScript language version for emitted JavaScript */
+    "lib": ["dom", "dom.iterable", "esnext"],    /* Specify a set of bundled library declaration files */
+    "jsx": "preserve",                           /* Specify what JSX code is generated */
+    
+    /* Modules */
+    "module": "esnext",                          /* Specify what module code is generated */
+    "moduleResolution": "bundler",               /* Specify how TypeScript looks up a file from a given module specifier */
+    "resolveJsonModule": true,                   /* Enable importing .json files */
+    "allowJs": true,                             /* Allow JavaScript files to be a part of your program */
+    
+    /* Emit */
+    "noEmit": true,                              /* Disable emitting files from a compilation */
+    "incremental": true,                         /* Save .tsbuildinfo files to allow for incremental compilation */
+    
+    /* Interop Constraints */
+    "esModuleInterop": true,                     /* Emit additional JavaScript to ease support for importing CommonJS modules */
+    "isolatedModules": true,                     /* Ensure that each file can be safely transpiled without relying on other imports */
+    
+    /* Type Checking */
+    "strict": true,                              /* Enable all strict type-checking options */
+    "skipLibCheck": true,                        /* Skip type checking all .d.ts files */
+    
+    /* Path Mapping */
+    "paths": {
+      "@/*": ["./src/*"]                         /* Enable absolute imports from src directory */
+    },
+    
+    /* Next.js Plugin */
     "plugins": [
       {
-        "name": "next"
+        "name": "next"                           /* Next.js TypeScript plugin for enhanced IDE support */
       }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  
+  /* Include and Exclude */
+  "include": [
+    "next-env.d.ts",                             /* Next.js environment types */
+    "**/*.ts",                                   /* All TypeScript files */
+    "**/*.tsx",                                  /* All TypeScript React files */
+    ".next/types/**/*.ts"                        /* Next.js generated types */
+  ],
+  "exclude": [
+    "node_modules"                               /* Exclude node_modules from compilation */
+  ]
 }

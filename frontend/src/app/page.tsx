@@ -1,3 +1,30 @@
+/**
+ * Home Page Component - Landing Page for Product Marketplace
+ * =========================================================
+ * 
+ * This is the main landing page that users see when they visit the application.
+ * It serves as the entry point for both new and returning users.
+ * 
+ * Key Features:
+ * - Professional hero section with company branding
+ * - Clear call-to-action buttons for login and registration
+ * - Responsive design that works on all devices
+ * - Modern gradient backgrounds and visual effects
+ * - Fixed navigation and footer for consistent UX
+ * 
+ * User Journey:
+ * 1. User lands on this page
+ * 2. Sees company branding and value proposition
+ * 3. Can choose to login (existing users) or register (new users)
+ * 4. Gets redirected to appropriate authentication flow
+ * 
+ * Design Philosophy:
+ * - Clean, professional appearance suitable for business users
+ * - Minimal distractions to focus on main actions
+ * - Trust-building elements (company branding, professional design)
+ * - Accessibility-friendly with proper contrast and navigation
+ */
+
 'use client';
 
 import Link from 'next/link';
@@ -6,16 +33,24 @@ import { ShoppingCart, Lock } from 'lucide-react';
 export default function Home() {
   return (
     <div className="min-h-screen bg-white flex flex-col pb-28">
-      {/* Navigation */}
+      {/* 
+        Fixed Navigation Bar
+        - Stays at top of screen during scroll
+        - Contains company branding and main actions
+        - Dark theme for professional appearance
+      */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Company Logo and Branding */}
             <div className="flex items-center">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                 <ShoppingCart className="w-6 h-6 text-[#001529]" />
               </div>
               <span className="ml-3 text-xl font-bold text-white">BAISoft</span>
             </div>
+            
+            {/* Authentication Actions */}
             <div className="flex items-center gap-3">
               <Link
                 href="/login"
@@ -34,22 +69,37 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* 
+        Hero Section - Main Content Area
+        - Large, attention-grabbing headline
+        - Clear value proposition
+        - Primary call-to-action buttons
+        - Visual effects with gradients and blur elements
+      */}
       <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
+        {/* Background Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50"></div>
+        
+        {/* Decorative Background Elements */}
         <div className="absolute top-20 right-0 w-96 h-96 bg-[#001529]/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
+            {/* Main Headline */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight mb-6">
               Welcome to
               <span className="text-[#001529]"> BAISoft</span>
             </h1>
+            
+            {/* Subtitle/Value Proposition */}
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
               Internal Product Management System
             </p>
+            
+            {/* Call-to-Action Buttons */}
             <div className="mt-16 sm:mt-20 flex flex-col sm:flex-row items-center justify-center gap-4">
+              {/* Primary Action - Login */}
               <Link
                 href="/login"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#001529] text-white font-semibold text-lg hover:bg-[#002140] transition-all shadow-xl shadow-[#001529]/20 flex items-center justify-center"
@@ -57,6 +107,8 @@ export default function Home() {
                 <Lock className="w-5 h-5 mr-2" />
                 Login to Access
               </Link>
+              
+              {/* Secondary Action - Register */}
               <Link
                 href="/register"
                 className="w-full sm:w-auto px-8 py-4 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-lg hover:border-[#001529] hover:text-[#001529] transition-all flex items-center justify-center"
@@ -68,16 +120,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* 
+        Fixed Footer
+        - Stays at bottom of screen
+        - Contains company information and copyright
+        - Consistent branding with navigation
+      */}
       <footer className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
+            {/* Company Branding */}
             <div className="flex items-center mb-4 md:mb-0">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5 text-[#001529]" />
               </div>
               <span className="ml-3 text-lg font-bold">BAISoft</span>
             </div>
+            
+            {/* Copyright Information */}
             <p className="text-gray-400 text-sm">
               © 2024 BAISoft. All rights reserved.
             </p>

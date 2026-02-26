@@ -1,3 +1,36 @@
+/**
+ * Admin Dashboard Page - System Overview and Analytics
+ * ===================================================
+ * 
+ * This is the administrative dashboard that provides system-wide analytics and insights
+ * for administrators. It offers a high-level view of the entire marketplace system.
+ * 
+ * Key Features:
+ * - System-wide statistics and metrics
+ * - Real-time data aggregation across all businesses
+ * - Visual analytics and performance indicators
+ * - Quick access to administrative functions
+ * - Professional dashboard design with modern UI
+ * 
+ * Access Control:
+ * - Only accessible to users with 'admin' role
+ * - Redirects non-admin users to regular dashboard
+ * - Requires authentication (redirects to login if not authenticated)
+ * 
+ * Analytics Displayed:
+ * - Total products across all businesses
+ * - Products pending approval (requires attention)
+ * - Approved products (live in marketplace)
+ * - Total registered businesses
+ * - Total system users
+ * 
+ * Design Philosophy:
+ * - Clean, modern interface with card-based layout
+ * - Color-coded metrics for quick visual assessment
+ * - Responsive design that works on all screen sizes
+ * - Professional styling suitable for executive dashboards
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -18,36 +51,64 @@ import {
     Package
 } from 'lucide-react';
 
+/**
+ * Statistics Interface Definition
+ * 
+ * Defines the structure of system-wide statistics displayed on the admin dashboard.
+ * These metrics provide insights into the overall health and activity of the marketplace.
+ */
 interface Stats {
-    total_products: number;
-    pending_approval: number;
-    approved_products: number;
-    total_businesses: number;
-    total_users: number;
+  total_products: number;      // Total number of products across all businesses
+  pending_approval: number;    // Products waiting for approval (requires admin attention)
+  approved_products: number;   // Products that are live and visible to customers
+  total_businesses: number;    // Total number of registered businesses
+  total_users: number;         // Total number of users across all businesses
 }
 
+/**
+ * Admin Dashboard Component
+ * 
+ * Provides a comprehensive overview of the entire marketplace system with
+ * key metrics, analytics, and quick access to administrative functions.
+ */
 export default function AdminDashboard() {
-    const { user, logout } = useAuth();
-    const router = useRouter();
-    const pathname = usePathname();
-    const [stats, setStats] = useState<Stats>({
+    // Authentication and routing hooks
+    const { user, logout } = useAuth();                    // Get current user and logout function
+    const router = useRouter();                             // Next.js router for navigation
+    const pathname = usePathname();                         // Current path for navigation highlighting
+    
+    // State management for dashboard statistics
+    const [stats, setStats] = useState<Stats>({             // System-wide statistics
         total_products: 0,
         pending_approval: 0,
         approved_products: 0,
         total_businesses: 0,
         total_users: 0
     });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);           // Loading state for data fetching
 
+    /**
+     * Authentication and Authorization Guard
+     * 
+     * This effect ensures only authenticated admin users can access this dashboard.
+     * It implements a two-level security check:
+     * 1. Authentication: User must be logged in
+     * 2. Authorization: User must have 'admin' role
+     */
     useEffect(() => {
+        // First check: User must be authenticated
         if (!user) {
             router.push('/login');
             return;
         }
+        
+        // Second check: User must be an admin
         if (user.role !== 'admin') {
-            router.push('/dashboard');
+            router.push('/dashboard');  // Redirect to regular dashboard
             return;
         }
+        
+        // User is authenticated and authorized - load dashboard data
         fetchStats();
     }, [user, router]);
 

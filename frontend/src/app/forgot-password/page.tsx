@@ -1,3 +1,45 @@
+/**
+ * Forgot Password Page Component - Password Reset Interface
+ * =========================================================
+ * 
+ * This component provides a password reset interface for users who have
+ * forgotten their passwords. It follows standard security practices for
+ * password recovery workflows.
+ * 
+ * Key Features:
+ * - Email-based password reset request
+ * - Professional security-focused design
+ * - User-friendly success/error messaging
+ * - Integration with backend password reset system
+ * - Responsive design for all devices
+ * - Security best practices implementation
+ * 
+ * Security Features:
+ * - Email validation before submission
+ * - Generic success message (doesn't reveal if email exists)
+ * - Rate limiting protection (handled by backend)
+ * - Secure token generation (handled by backend)
+ * - No sensitive information exposure
+ * 
+ * User Flow:
+ * 1. User enters their email address
+ * 2. System sends password reset link to email (if account exists)
+ * 3. User receives generic success message
+ * 4. User checks email for reset instructions
+ * 5. User follows link to reset password (separate flow)
+ * 
+ * Design Philosophy:
+ * - Clean, professional appearance
+ * - Clear instructions and expectations
+ * - Security-focused messaging
+ * - Consistent with login page design
+ * - Accessibility-friendly interface
+ * 
+ * Note: This is currently a placeholder implementation.
+ * The backend password reset endpoint needs to be implemented
+ * for full functionality.
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -5,21 +47,48 @@ import Link from 'next/link';
 import { Lock, Mail, ChevronLeft } from 'lucide-react';
 
 export default function ForgotPassword() {
-    const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [error, setError] = useState('');
+    // Form state management
+    const [email, setEmail] = useState('');                    // User's email input
+    const [loading, setLoading] = useState(false);             // Loading state during request
+    const [success, setSuccess] = useState(false);             // Success state after submission
+    const [error, setError] = useState('');                    // Error message display
 
+    /**
+     * Handle Password Reset Form Submission
+     * 
+     * Processes the password reset request with proper security practices.
+     * Currently simulates the API call since the backend endpoint is not implemented.
+     * 
+     * Security Considerations:
+     * - Generic success message regardless of whether email exists
+     * - No information disclosure about account existence
+     * - Rate limiting should be implemented on backend
+     * - Secure token generation for reset links
+     * 
+     * TODO: Implement actual backend endpoint integration
+     * 
+     * @param e - Form submission event
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Simulate API call for now since backend endpoint is missing
+        // TODO: Replace with actual API call when backend endpoint is implemented
+        // Example implementation:
+        // try {
+        //     await api.post('/auth/forgot-password/', { email });
+        //     setSuccess(true);
+        // } catch (err: any) {
+        //     setError('Failed to send reset link. Please try again.');
+        // } finally {
+        //     setLoading(false);
+        // }
+
+        // Simulate API call for now
         setTimeout(() => {
             setLoading(false);
             setSuccess(true);
-            // TODO: Implement actual backend endpoint call here
         }, 1500);
     };
 

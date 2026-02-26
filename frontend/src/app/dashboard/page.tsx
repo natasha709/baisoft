@@ -1,3 +1,40 @@
+/**
+ * Product Dashboard Page - Main Product Management Interface
+ * =========================================================
+ * 
+ * This is the primary dashboard for product management in the marketplace system.
+ * It provides a comprehensive interface for viewing, creating, editing, and managing
+ * products with role-based permissions and approval workflows.
+ * 
+ * Key Features:
+ * - Role-based product management (Admin, Editor, Approver, Viewer)
+ * - Product CRUD operations with permission validation
+ * - Three-stage approval workflow (Draft → Pending → Approved)
+ * - Business isolation (users only see products from their business)
+ * - Real-time product status updates
+ * - Professional data table with sorting and filtering
+ * - Modal-based forms for create/edit operations
+ * - Confirmation dialogs for destructive actions
+ * 
+ * User Roles & Permissions:
+ * - Admin: Full access (create, edit, approve, delete products + manage users)
+ * - Editor: Create and edit products, submit for approval
+ * - Approver: Approve pending products, view all products
+ * - Viewer: Read-only access to view products
+ * 
+ * Workflow:
+ * 1. Editor creates product (status: draft)
+ * 2. Editor submits product for approval (status: pending_approval)
+ * 3. Approver reviews and approves product (status: approved)
+ * 4. Approved products are visible to customers
+ * 
+ * Security Features:
+ * - Authentication required (redirects to login if not authenticated)
+ * - Role-based UI rendering (buttons/actions only shown if user has permission)
+ * - Business isolation (users only see products from their business)
+ * - Permission validation on all operations
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,142 +44,303 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { Building2, Users, LayoutDashboard, MessageSquare, TrendingUp } from 'lucide-react';
 
+/**
+ * TypeScript Interface Definitions
+ * 
+ * These interfaces define the shape of data objects used throughout the component.
+ * They provide type safety and better IDE support for development.
+ */
+
+// Product interface - represents a product in the marketplace system
 interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  status: 'draft' | 'pending_approval' | 'approved';
-  created_by_email: string;
-  business: number;
-  business_name: string;
+  id: number;                                           // Unique product identifier
+  name: string;                                         // Product name (e.g., "iPhone 15")
+  description: string;                                  // Detailed product description
+  price: string;                                        // Product price as string (formatted from backend)
+  status: 'draft' | 'pending_approval' | 'approved';   // Product approval status
+  created_by_email: string;                             // Email of user who created the product
+  business: number;                                     // Business ID that owns the product
+  business_name: string;                                // Business name (for display)
 }
 
+// Business interface - represents a business/company in the system
 interface Business {
-  id: number;
-  name: string;
+  id: number;                                           // Unique business identifier
+  name: string;                                         // Business name (e.g., "Acme Corp")
 }
 
+/**
+ * Main Dashboard Component
+ * 
+ * This component serves as the central hub for product management operations.
+ * It handles the complete product lifecycle from creation to approval.
+ */
 export default function Dashboard() {
-  const { user, logout, hasPermission } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', business: '' });
-  const [error, setError] = useState('');
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [editData, setEditData] = useState({ name: '', description: '', price: '', business: '' });
-  const [editError, setEditError] = useState('');
-  const [editSaving, setEditSaving] = useState(false);
-  const [viewing, setViewing] = useState<Product | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingProduct, setDeletingProduct] = useState<{ id: number; name: string } | null>(null);
+  // Authentication and routing hooks
+  const { user, logout, hasPermission } = useAuth();   // Get current user and auth functions
+  const router = useRouter();                           // Next.js router for navigation
+  const pathname = usePathname();                       // Current page path for navigation highlighting
+  
+  // State management for products and businesses
+  const [products, setProducts] = useState<Product[]>([]);      // List of products to display
+  const [businesses, setBusinesses] = useState<Business[]>([]);  // Available businesses for product creation
+  const [loading, setLoading] = useState(true);                 // Loading state for initial data fetch
+  
+  // State management for product creation form
+  const [showCreateForm, setShowCreateForm] = useState(false);   // Toggle create product modal
+  const [formData, setFormData] = useState({                     // Form data for new product
+    name: '', 
+    description: '', 
+    price: '', 
+    business: ''
+  });
+  const [error, setError] = useState('');                        // Error message for create form
+  
+  // State management for product editing
+  const [editing, setEditing] = useState<Product | null>(null);  // Product being edited (null = not editing)
+  const [editData, setEditData] = useState({                     // Form data for editing product
+    name: '', 
+    description: '', 
+    price: '', 
+    business: ''
+  });
+  const [editError, setEditError] = useState('');                // Error message for edit form
+  const [editSaving, setEditSaving] = useState(false);           // Loading state for edit save operation
+  
+  // State management for product viewing modal
+  const [viewing, setViewing] = useState<Product | null>(null);  // Product being viewed in detail modal
+  
+  // State management for product deletion
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Toggle delete confirmation modal
+  const [deletingProduct, setDeletingProduct] = useState<{       // Product being deleted
+    id: number; 
+    name: string;
+  } | null>(null);
 
-  // Redirect unauthenticated users to login before loading product data.
+  /**
+   * Authentication Guard Effect
+   * 
+   * This effect runs when the component mounts and whenever the user state changes.
+   * It ensures only authenticated users can access the dashboard and redirects
+   * unauthenticated users to the login page.
+   */
   useEffect(() => {
+    // Redirect unauthenticated users to login before loading product data
     if (!user) {
       router.push('/login');
       return;
     }
+    
+    // Load initial data for authenticated users
     fetchProducts();
     fetchBusinesses();
   }, [user, router]);
 
+  /**
+   * Fetch Products from API
+   * 
+   * Retrieves all products that the current user has permission to view.
+   * The backend handles business isolation and role-based filtering.
+   * 
+   * Business Logic:
+   * - Superusers see all products across all businesses
+   * - Regular users see products from their associated business only
+   * - Products are filtered by approval status based on user role
+   */
   const fetchProducts = async () => {
     try {
       const response = await api.get('/products/');
+      // Handle both paginated and non-paginated API responses
       setProducts(response.data.results || response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
+      // TODO: Show user-friendly error message
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Fetch Available Businesses for Product Creation
+   * 
+   * Retrieves businesses that the current user can create products for.
+   * Used to populate the business dropdown in the create product form.
+   * 
+   * Auto-selection Logic:
+   * - If user has an associated business, pre-select it
+   * - Otherwise, select the first available business
+   */
   const fetchBusinesses = async () => {
     try {
       const response = await api.get('/auth/businesses/');
       const data = response.data.results || response.data;
       setBusinesses(data);
 
-      // Default to user's business if available
+      // Auto-select default business for new product creation
       if (data.length > 0) {
+        // Prefer user's associated business, fallback to first available
         const defaultBusiness = data.find((b: any) => b.id === user?.business) || data[0];
         setFormData(prev => ({ ...prev, business: defaultBusiness.id.toString() }));
       }
     } catch (err) {
       console.error('Error fetching businesses:', err);
+      // TODO: Show user-friendly error message
     }
   };
 
+  /**
+   * Handle Product Creation Form Submission
+   * 
+   * Creates a new product with the provided form data. Products start in 'draft' status
+   * and can be submitted for approval later by Editors.
+   * 
+   * Process:
+   * 1. Validate form data (handled by browser and backend)
+   * 2. Send POST request to create product
+   * 3. Reset form and close modal on success
+   * 4. Refresh product list to show new product
+   * 5. Display error message if creation fails
+   * 
+   * Permissions: Only users with 'create_product' permission (Editors and Admins)
+   */
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
       await api.post('/products/', formData);
-      setFormData({ name: '', description: '', price: '', business: businesses[0]?.id.toString() || '' });
+      
+      // Reset form state and close modal
+      setFormData({ 
+        name: '', 
+        description: '', 
+        price: '', 
+        business: businesses[0]?.id.toString() || '' 
+      });
       setShowCreateForm(false);
+      
+      // Refresh product list to show new product
       fetchProducts();
     } catch (err: any) {
+      // Display user-friendly error message
       setError(err.response?.data?.error || 'Failed to create product');
     }
   };
 
+  /**
+   * Handle Product Approval
+   * 
+   * Approves a product that is in 'pending_approval' status, making it visible
+   * to customers and moving it to 'approved' status.
+   * 
+   * Business Rules:
+   * - Only products in 'pending_approval' status can be approved
+   * - Only users with 'approve_product' permission (Approvers and Admins)
+   * - Approval creates audit trail (who approved, when)
+   * 
+   * @param id - Product ID to approve
+   */
   const handleApprove = async (id: number) => {
     try {
-      // Approval is role-gated on the backend; UI only exposes when allowed.
+      // Backend validates user permissions and product status
       await api.post(`/products/${id}/approve/`);
-      fetchProducts();
+      fetchProducts(); // Refresh list to show updated status
     } catch (err: any) {
+      // Show error message to user
       alert(err.response?.data?.error || 'Failed to approve product');
     }
   };
 
+  /**
+   * Handle Product Deletion Request
+   * 
+   * Opens confirmation modal for product deletion. This is a destructive action
+   * that requires explicit user confirmation.
+   * 
+   * @param id - Product ID to delete
+   * @param name - Product name for confirmation display
+   */
   const handleDelete = async (id: number, name: string) => {
-    // Open delete confirmation modal instead of browser confirm
+    // Open delete confirmation modal instead of browser confirm for better UX
     setDeletingProduct({ id, name });
     setShowDeleteModal(true);
   };
 
+  /**
+   * Confirm Product Deletion
+   * 
+   * Actually performs the product deletion after user confirmation.
+   * This is a destructive action that cannot be undone.
+   * 
+   * Permissions: Only users with 'delete_product' permission (Admins)
+   */
   const confirmDeleteProduct = async () => {
     if (!deletingProduct) return;
 
     try {
       await api.delete(`/products/${deletingProduct.id}/`);
+      
+      // Close modal and reset state
       setShowDeleteModal(false);
       setDeletingProduct(null);
+      
+      // Refresh product list to remove deleted product
       fetchProducts();
     } catch (err: any) {
+      // Show error and close modal
       alert(err.response?.data?.error || 'Failed to delete product');
       setShowDeleteModal(false);
       setDeletingProduct(null);
     }
   };
 
+  /**
+   * Handle Submit Product for Approval
+   * 
+   * Moves a draft product to 'pending_approval' status, making it available
+   * for Approvers to review and approve.
+   * 
+   * Business Rules:
+   * - Only draft products can be submitted for approval
+   * - Only users with 'edit_product' permission (Editors and Admins)
+   * - Once submitted, product cannot be edited until approved or rejected
+   * 
+   * @param id - Product ID to submit for approval
+   */
   const handleSubmitForApproval = async (id: number) => {
     try {
-      // Draft products move to pending_approval through this action.
+      // Backend validates product status and user permissions
       await api.post(`/products/${id}/submit_for_approval/`);
-      fetchProducts();
+      fetchProducts(); // Refresh list to show updated status
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to submit for approval');
     }
   };
 
+  /**
+   * Handle User Logout
+   * 
+   * Logs out the current user and redirects to the landing page.
+   * Clears all authentication state and tokens.
+   */
   const handleLogout = () => {
     logout();
     router.push('/');
   };
 
+  // Early return if user is not authenticated (prevents flash of content)
   if (!user) return null;
 
+  /**
+   * Open Product Edit Modal
+   * 
+   * Prepares the edit form with the selected product's data and opens the edit modal.
+   * 
+   * @param p - Product to edit
+   */
   const openEdit = (p: Product) => {
     setEditError('');
-    // Seed edit modal fields from selected product.
+    // Populate edit form with current product data
     setEditing(p);
     setEditData({
       name: p.name,
@@ -152,33 +350,62 @@ export default function Dashboard() {
     });
   };
 
+  /**
+   * Close Product Edit Modal
+   * 
+   * Closes the edit modal and resets all edit-related state.
+   */
   const closeEdit = () => {
     setEditing(null);
     setEditError('');
     setEditSaving(false);
   };
 
+  /**
+   * Handle Product Edit Form Submission
+   * 
+   * Updates an existing product with the modified data from the edit form.
+   * 
+   * Process:
+   * 1. Validate form data
+   * 2. Send PATCH request to update product
+   * 3. Close modal and refresh product list on success
+   * 4. Display error message if update fails
+   * 
+   * Permissions: Only users with 'edit_product' permission (Editors and Admins)
+   */
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
+    
     setEditError('');
     setEditSaving(true);
+    
     try {
       await api.patch(`/products/${editing.id}/`, editData);
       closeEdit();
-      fetchProducts();
+      fetchProducts(); // Refresh list to show updated product
     } catch (err: any) {
+      // Display detailed error message
       setEditError(err.response?.data?.detail || err.response?.data?.error || 'Failed to update product');
       setEditSaving(false);
     }
   };
 
+  /**
+   * Get Status Badge Styling
+   * 
+   * Returns CSS classes for product status badges based on the status value.
+   * Provides consistent visual representation of product states across the UI.
+   * 
+   * @param status - Product status ('draft', 'pending_approval', 'approved')
+   * @returns CSS class string for badge styling
+   */
   const getStatusBadge = (status: string) => {
-    // Centralized status-to-style mapping keeps table and modals visually consistent.
     const colors = {
-      draft: 'bg-gray-200 text-gray-800',
-      pending_approval: 'bg-yellow-200 text-yellow-800',
-      approved: 'bg-green-200 text-green-800',
+      draft: 'bg-gray-200 text-gray-800',                    // Gray for draft products
+      pending_approval: 'bg-yellow-200 text-yellow-800',     // Yellow for pending approval
+      approved: 'bg-green-200 text-green-800',               // Green for approved products
     };
     return colors[status as keyof typeof colors] || 'bg-gray-200 text-gray-800';
   };

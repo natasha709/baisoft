@@ -1,3 +1,43 @@
+/**
+ * Registration Page Component - Business Owner Signup
+ * ==================================================
+ * 
+ * This component provides the registration interface for new business owners
+ * to create their accounts and set up their organizations in the marketplace.
+ * 
+ * Key Features:
+ * - Combined user and business registration in one form
+ * - Professional multi-section form design
+ * - Role selection for the initial admin user
+ * - Business capability configuration
+ * - Comprehensive form validation
+ * - Responsive design with modern UI elements
+ * - Automatic login after successful registration
+ * 
+ * Registration Process:
+ * 1. User fills out personal information (name, email, password)
+ * 2. User provides business details (name, capabilities)
+ * 3. System creates both user account and business
+ * 4. User becomes the admin/owner of the new business
+ * 5. User is automatically logged in and redirected to dashboard
+ * 
+ * Business Capabilities:
+ * - can_create_users: Allow business to invite team members
+ * - can_assign_roles: Allow business to manage user permissions
+ * 
+ * Design Philosophy:
+ * - Step-by-step form sections for better UX
+ * - Clear visual hierarchy and information grouping
+ * - Professional appearance suitable for business owners
+ * - Accessibility-friendly with proper labels and structure
+ * 
+ * Security Features:
+ * - Password strength requirements
+ * - Email validation
+ * - Secure token handling after registration
+ * - Protection against duplicate registrations
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -8,43 +48,90 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Building2, User as UserIcon, ShieldCheck, Mail, Lock, UserCircle } from 'lucide-react';
 
 export default function Register() {
+  // Form state management - combines user and business data
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    role: 'admin',
-    business_name: '',
-    can_create_users: true,
-    can_assign_roles: true,
+    // User information
+    email: '',                          // User's email address (will be login username)
+    password: '',                       // User's chosen password
+    first_name: '',                     // User's first name
+    last_name: '',                      // User's last name
+    role: 'admin',                      // User's role (admin by default for business owners)
+    
+    // Business information
+    business_name: '',                  // Name of the business to create
+    can_create_users: true,             // Whether business can invite team members
+    can_assign_roles: true,             // Whether business can manage user roles
   });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { setUser } = useAuth();
+  
+  // UI state management
+  const [error, setError] = useState('');                    // Error message display
+  const [loading, setLoading] = useState(false);             // Loading state during registration
+  
+  // Navigation and authentication hooks
+  const router = useRouter();                                // Next.js router for navigation
+  const { setUser } = useAuth();                             // Auth context to set user state
 
+  /**
+   * Handle Registration Form Submission
+   * 
+   * Processes the registration form to create both a user account and
+   * associated business in a single operation.
+   * 
+   * Process Flow:
+   * 1. Prevent default form submission
+   * 2. Clear any existing error messages
+   * 3. Set loading state for UI feedback
+   * 4. Call registration API with combined user/business data
+   * 5. Update global user state with returned user data
+   * 6. Redirect to dashboard (user is automatically logged in)
+   * 7. Handle and display any registration errors
+   * 
+   * Backend Integration:
+   * - Creates user account with provided personal information
+   * - Creates business with user as owner/admin
+   * - Returns JWT tokens for immediate authentication
+   * - Handles validation errors and duplicate email checks
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // Register user and create business
       const response = await register(formData);
+      
+      // Update global authentication state
       setUser(response.user);
+      
+      // Redirect to dashboard (user is now logged in)
       router.push('/dashboard');
     } catch (err: any) {
+      // Display user-friendly error message
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
+      // Always clear loading state
       setLoading(false);
     }
   };
 
+  /**
+   * Handle Form Input Changes
+   * 
+   * Updates form state when user types in input fields or selects options.
+   * Handles both regular inputs and checkboxes with appropriate type checking.
+   * 
+   * @param e - Input change event
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    
     if (type === 'checkbox') {
+      // Handle checkbox inputs (business capabilities)
       const checked = (e.target as HTMLInputElement).checked;
       setFormData({ ...formData, [name]: checked });
     } else {
+      // Handle text inputs and selects
       setFormData({ ...formData, [name]: value });
     }
   };

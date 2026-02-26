@@ -1,3 +1,52 @@
+/**
+ * User Management Page Component - Admin User Administration
+ * =========================================================
+ * 
+ * This component provides a comprehensive user management interface for
+ * administrators to create, edit, and delete users within the system.
+ * 
+ * Key Features:
+ * - Complete user CRUD operations (Create, Read, Update, Delete)
+ * - Role-based access control (Admin only)
+ * - User invitation system with email notifications
+ * - Professional data table with user information
+ * - Modal-based forms for user creation and editing
+ * - Confirmation dialogs for destructive actions
+ * - Real-time user status indicators
+ * - Business isolation (admins manage users in their business)
+ * 
+ * Access Control:
+ * - Only accessible to users with 'admin' role
+ * - Redirects non-admin users to regular dashboard
+ * - Requires authentication (redirects to login if not authenticated)
+ * 
+ * User Management Features:
+ * - Create new users with role assignment
+ * - Edit existing user information and roles
+ * - Delete users with confirmation
+ * - View user status (active, pending password change)
+ * - Send invitation emails with temporary passwords
+ * 
+ * Business Logic:
+ * - Admins can only manage users within their business
+ * - New users are automatically assigned to admin's business
+ * - Invitation emails are sent automatically for new users
+ * - User roles determine system permissions
+ * 
+ * User Roles:
+ * - Admin: Full system access, can manage users and products
+ * - Editor: Can create and edit products
+ * - Approver: Can approve products for publication
+ * - Viewer: Read-only access to products
+ * 
+ * Security Features:
+ * - Role-based access control
+ * - Business isolation (multi-tenancy)
+ * - Confirmation dialogs for destructive actions
+ * - Input validation and sanitization
+ * - Audit trail through user creation tracking
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';

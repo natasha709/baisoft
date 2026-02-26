@@ -8,29 +8,60 @@ import { useAuth } from '@/contexts/AuthContext';
 import { login } from '@/lib/auth';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { setUser } = useAuth();
+  // Form state management
+  const [email, setEmail] = useState('');                    // User's email input
+  const [password, setPassword] = useState('');              // User's password input
+  const [showPassword, setShowPassword] = useState(false);   // Toggle for password visibility
+  const [error, setError] = useState('');                    // Error message display
+  const [loading, setLoading] = useState(false);             // Loading state during authentication
+  
+  // Navigation and authentication hooks
+  const router = useRouter();                                // Next.js router for navigation
+  const { setUser } = useAuth();                             // Auth context to set user state
 
+  /**
+   * Handle Login Form Submission
+   * 
+   * Processes the login form submission with comprehensive error handling
+   * and user redirection based on account status.
+   * 
+   * Process Flow:
+   * 1. Prevent default form submission
+   * 2. Clear any existing error messages
+   * 3. Set loading state for UI feedback
+   * 4. Call authentication API
+   * 5. Update global user state
+   * 6. Redirect based on password change requirement
+   * 7. Handle and display any errors
+   * 
+   * Redirection Logic:
+   * - If password_change_required: → /change-password (for invited users)
+   * - Otherwise: → /dashboard (normal login flow)
+   * 
+   * Error Handling:
+   * - Network errors: Generic "login failed" message
+   * - API errors: Display specific error from backend
+   * - Validation errors: Display field-specific errors
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // Authenticate user with backend API
       const response = await login(email, password);
-      // The login function in lib/auth usually returns { user, tokens } or similar structure
-      // Adjust based on your actual API response structure if needed
+      
+      // Validate response structure
       if (response && response.user) {
+        // Update global authentication state
         setUser(response.user);
 
+        // Handle invitation system: users with temporary passwords must change them
         if (response.user.password_change_required) {
           router.push('/change-password');
         } else {
+          // Normal login flow: redirect to main dashboard
           router.push('/dashboard');
         }
       } else {
@@ -38,8 +69,10 @@ export default function Login() {
       }
     } catch (err: any) {
       console.error("Login error:", err);
+      // Display user-friendly error message
       setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
     } finally {
+      // Always clear loading state
       setLoading(false);
     }
   };
