@@ -1,48 +1,3 @@
-/**
- * AI Chatbot Page Component - Product Assistant Interface
- * =======================================================
- * 
- * This component provides an AI-powered chatbot interface for users to query
- * product information using natural language. It integrates with OpenAI GPT
- * to provide intelligent responses about marketplace products.
- * 
- * Key Features:
- * - Natural language product queries
- * - Real-time chat interface with message history
- * - AI-powered responses using OpenAI GPT
- * - Business-scoped product context (users only query their business products)
- * - Professional chat UI with modern design
- * - Message persistence and history retrieval
- * - Responsive design for all devices
- * - Error handling with graceful fallbacks
- * 
- * AI Capabilities:
- * - Product search and discovery
- * - Price comparisons and recommendations
- * - Business insights and analytics
- * - Natural language understanding
- * - Context-aware responses
- * 
- * Business Logic:
- * - Users can only query products from their associated business
- * - Superusers can query all approved products
- * - Only approved products are included in AI responses
- * - Chat history is stored per user for reference
- * 
- * User Experience:
- * - Conversational interface similar to modern chat apps
- * - Suggested queries for new users
- * - Real-time typing indicators
- * - Message history for reference
- * - Professional appearance suitable for business use
- * 
- * Security & Privacy:
- * - Authentication required for access
- * - Business isolation (users can't query other businesses' data)
- * - Chat history is private to each user
- * - No sensitive business data exposed to AI
- */
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -53,154 +8,90 @@ import Link from 'next/link';
 
 import { Building2, MessageSquare, LayoutDashboard, Share2, Users, TrendingUp } from 'lucide-react';
 
-/**
- * Message Interface Definition
- * 
- * Represents a chat message in the conversation. Handles both user messages
- * and AI responses with flexible field support for different API response formats.
- */
 interface Message {
-  id?: number;                          // Optional message ID from database
-  user_message?: string;                // User's message (from chat history API)
-  ai_response?: string;                 // AI's response (from chat history API)
-  message?: string;                     // Alternative field name for user message
-  response?: string;                    // Alternative field name for AI response
-  isUser: boolean;                      // Whether this message is from the user
-  text: string;                         // The actual message text to display
+  id?: number;
+  user_message?: string;
+  ai_response?: string;
+  message?: string;
+  response?: string;
+  isUser: boolean;
+  text: string;
 }
 
-/**
- * AI Chatbot Component
- * 
- * Provides an intelligent chat interface for product queries and business insights.
- */
 export default function Chatbot() {
-  // Authentication and navigation hooks
-  const { user, logout } = useAuth();                        // Get current user and logout function
-  const router = useRouter();                                // Next.js router for navigation
-  const pathname = usePathname();                            // Current path for navigation highlighting
-  
-  // Chat state management
-  const [messages, setMessages] = useState<Message[]>([]);   // Chat conversation history
-  const [input, setInput] = useState('');                    // Current user input
-  const [loading, setLoading] = useState(false);             // Loading state for AI responses
 
-  /**
-   * Authentication Guard and Data Loading Effect
-   * 
-   * Ensures only authenticated users can access the chatbot and loads
-   * their chat history when the component mounts.
-   */
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    // Redirect unauthenticated users to login
+
     if (!user) {
       router.push('/login');
       return;
     }
-    
-    // Load user's chat history
+
     fetchHistory();
   }, [user, router]);
 
-  /**
-   * Fetch Chat History from API
-   * 
-   * Retrieves the user's previous chat conversations with the AI assistant.
-   * Messages are formatted and ordered for display in the chat interface.
-   * 
-   * Process:
-   * 1. Fetch chat history from backend API
-   * 2. Transform API response into Message format
-   * 3. Create alternating user/AI message pairs
-   * 4. Reverse order to show newest messages at bottom
-   * 5. Update messages state for display
-   */
   const fetchHistory = async () => {
     try {
       const response = await api.get('/chatbot/history/');
-      
-      // Transform API response into chat message format
+
       const history = (response.data.results || response.data).map((msg: any) => [
-        { isUser: true, text: msg.user_message },      // User's question
-        { isUser: false, text: msg.ai_response },      // AI's response
+        { isUser: true, text: msg.user_message },
+        { isUser: false, text: msg.ai_response },
       ]).flat();
-      
-      // Reverse to show chronological order (oldest to newest)
+
       setMessages(history.reverse());
     } catch (error) {
       console.error('Error fetching chat history:', error);
-      // TODO: Show user-friendly error message
+
     }
   };
 
-  /**
-   * Handle Chat Message Submission
-   * 
-   * Processes user input and sends it to the AI chatbot API for intelligent responses.
-   * Manages the complete conversation flow with error handling and UI updates.
-   * 
-   * Process Flow:
-   * 1. Validate user input (not empty)
-   * 2. Add user message to chat immediately (optimistic UI)
-   * 3. Clear input field and show loading state
-   * 4. Send query to AI chatbot API
-   * 5. Add AI response to chat
-   * 6. Handle errors gracefully with user-friendly messages
-   * 7. Clear loading state
-   * 
-   * Error Handling:
-   * - Network errors: Generic error message
-   * - API errors: Specific error from backend
-   * - AI service errors: Fallback error message
-   * 
-   * @param e - Form submission event
-   */
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     const userMessage = input;
     setInput('');
-    
-    // Add user message to chat immediately (optimistic UI update)
+
     setMessages([...messages, { isUser: true, text: userMessage }]);
     setLoading(true);
 
     try {
-      // Send query to AI chatbot API
+
       const response = await api.post('/chatbot/query/', { message: userMessage });
-      
-      // Add AI response to chat
+
       setMessages(prev => [...prev, { isUser: false, text: response.data.response }]);
     } catch (error: any) {
-      // Handle errors gracefully with user-friendly messages
+
       const errorMessage = error.response?.data?.error || 'Sorry, I encountered an error. Please try again.';
       setMessages(prev => [...prev, {
         isUser: false,
         text: errorMessage
       }]);
     } finally {
-      // Always clear loading state
+
       setLoading(false);
     }
   };
 
-  /**
-   * Handle User Logout
-   * 
-   * Logs out the current user and redirects to the landing page.
-   */
   const handleLogout = () => {
     logout();
     router.push('/');
   };
 
-  // Early return if user is not authenticated (prevents flash of content)
   if (!user) return null;
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      {}
       <div className="w-64 bg-[#001529] text-white shadow-lg flex flex-col transition-colors duration-200">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
@@ -285,7 +176,7 @@ export default function Chatbot() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow-sm z-10">
           <div className="px-8 py-4 flex justify-between items-center">

@@ -1,41 +1,3 @@
-/**
- * Change Password Page Component - Secure Password Update Interface
- * ================================================================
- * 
- * This component provides a secure interface for users to change their passwords.
- * It's primarily used in the invitation system where users receive temporary
- * passwords and must set their own secure passwords on first login.
- * 
- * Key Features:
- * - Secure password change workflow
- * - Real-time password strength indicator
- * - Password confirmation validation
- * - Professional security-focused design
- * - Integration with invitation system
- * - Automatic redirection after successful change
- * - Comprehensive security warnings and guidelines
- * 
- * Use Cases:
- * 1. New users with temporary passwords (primary use case)
- * 2. Users wanting to update their existing passwords
- * 3. Security-mandated password changes
- * 
- * Security Features:
- * - Current password verification
- * - Password strength validation
- * - Password confirmation matching
- * - Minimum length requirements
- * - Clear security guidelines for users
- * - Temporary password expiration handling
- * 
- * User Experience:
- * - Clear instructions and warnings
- * - Visual password strength feedback
- * - Helpful error messages
- * - Professional security-focused design
- * - Responsive layout for all devices
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -44,37 +6,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 
 export default function ChangePassword() {
-  // Authentication hook
-  const { user } = useAuth();                                // Get current user data
-  const router = useRouter();                                // Next.js router for navigation
-  
-  // Form state management
-  const [formData, setFormData] = useState({
-    old_password: '',                                        // Current password (temporary for new users)
-    new_password: '',                                        // User's chosen new password
-    confirm_password: '',                                    // Password confirmation for validation
-  });
-  
-  // UI state management
-  const [error, setError] = useState('');                    // Error message display
-  const [loading, setLoading] = useState(false);             // Loading state during password change
-  const [passwordStrength, setPasswordStrength] = useState(''); // Password strength indicator
 
-  /**
-   * Password Strength Checker
-   * 
-   * Evaluates password strength based on length and character complexity.
-   * Provides real-time feedback to help users create secure passwords.
-   * 
-   * Strength Levels:
-   * - Too short: Less than 8 characters
-   * - Weak: 8-9 characters, basic requirements
-   * - Medium: 10+ characters but missing character types
-   * - Strong: 10+ characters with uppercase, lowercase, and numbers
-   * 
-   * @param password - Password to evaluate
-   * @returns String indicating password strength level
-   */
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState('');
+
   const checkPasswordStrength = (password: string) => {
     if (password.length < 8) return 'Too short';
     if (password.length < 10) return 'Weak';
@@ -84,51 +29,21 @@ export default function ChangePassword() {
     return 'Strong';
   };
 
-  /**
-   * Handle Password Input Change
-   * 
-   * Updates the new password field and recalculates password strength
-   * in real-time to provide immediate feedback to the user.
-   * 
-   * @param e - Input change event
-   */
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setFormData({ ...formData, new_password: newPassword });
     setPasswordStrength(checkPasswordStrength(newPassword));
   };
 
-  /**
-   * Handle Password Change Form Submission
-   * 
-   * Processes the password change request with comprehensive validation
-   * and error handling. This is critical for the invitation system security.
-   * 
-   * Validation Steps:
-   * 1. Client-side validation (password match, length)
-   * 2. Server-side validation (current password, expiry)
-   * 3. Password update and security flag clearing
-   * 4. Automatic redirection to dashboard
-   * 
-   * Security Features:
-   * - Current password verification
-   * - Temporary password expiration checking
-   * - Password change requirement flag clearing
-   * - Role-based redirection
-   * 
-   * @param e - Form submission event
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Client-side validation: passwords must match
     if (formData.new_password !== formData.confirm_password) {
       setError('New passwords do not match');
       return;
     }
 
-    // Client-side validation: minimum password length
     if (formData.new_password.length < 8) {
       setError('Password must be at least 8 characters');
       return;
@@ -137,41 +52,32 @@ export default function ChangePassword() {
     setLoading(true);
 
     try {
-      // Send password change request to backend
+
       await api.post('/auth/change-password/', formData);
-      
-      // Redirect based on user role after successful password change
+
       const roleRoutes: Record<string, string> = {
         admin: '/dashboard',
         editor: '/dashboard',
         approver: '/dashboard',
         viewer: '/dashboard',
       };
-      
+
       router.push(roleRoutes[user?.role || 'viewer']);
     } catch (err: any) {
-      // Display user-friendly error message
+
       setError(err.response?.data?.error || 'Failed to change password');
     } finally {
-      // Always clear loading state
+
       setLoading(false);
     }
   };
 
-  /**
-   * Get Password Strength Color
-   * 
-   * Returns appropriate CSS color class based on password strength level.
-   * Provides visual feedback to help users understand password security.
-   * 
-   * @returns CSS color class string
-   */
   const getStrengthColor = () => {
     switch (passwordStrength) {
-      case 'Strong': return 'text-green-600';      // Green for strong passwords
-      case 'Medium': return 'text-yellow-600';     // Yellow for medium passwords
-      case 'Weak': return 'text-orange-600';       // Orange for weak passwords
-      default: return 'text-red-600';              // Red for too short/invalid
+      case 'Strong': return 'text-green-600';
+      case 'Medium': return 'text-yellow-600';
+      case 'Weak': return 'text-orange-600';
+      default: return 'text-red-600';
     }
   };
 

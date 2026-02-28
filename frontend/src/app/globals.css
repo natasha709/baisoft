@@ -1,94 +1,26 @@
-/**
- * Global CSS Styles for Product Marketplace
- * =========================================
- * 
- * This file contains the global CSS styles for the entire application.
- * It includes Tailwind CSS imports and custom CSS variables and styles.
- * 
- * Structure:
- * 1. Tailwind CSS imports (base, components, utilities)
- * 2. CSS custom properties (variables) for theming
- * 3. Global element styles
- * 4. Custom utility classes (if any)
- * 
- * Design System:
- * - Uses Tailwind CSS for utility-first styling
- * - Custom CSS variables for consistent theming
- * - Responsive design principles
- * - Professional color scheme suitable for business applications
- * 
- * Performance:
- * - Tailwind CSS automatically purges unused styles in production
- * - Minimal custom CSS to keep bundle size small
- * - CSS variables enable dynamic theming without JavaScript
- */
-
-/* Tailwind CSS Base Styles */
-/* Includes normalize.css and basic element styles */
 @tailwind base;
 
-/* Tailwind CSS Component Classes */
-/* Pre-built component styles and patterns */
 @tailwind components;
 
-/* Tailwind CSS Utility Classes */
-/* All utility classes for spacing, colors, typography, etc. */
 @tailwind utilities;
 
-/**
- * CSS Custom Properties (Variables)
- * 
- * These variables define the core color scheme and can be used throughout
- * the application for consistent theming. They support both light and dark
- * modes if needed in the future.
- */
 :root {
-  /* Foreground Colors */
-  --foreground-rgb: 0, 0, 0;                    /* Primary text color (black) */
-  
-  /* Background Gradient Colors */
-  --background-start-rgb: 214, 219, 220;        /* Light gray for gradient start */
-  --background-end-rgb: 255, 255, 255;          /* White for gradient end */
-  
-  /* Additional theme variables can be added here */
-  /* Example: --primary-color: 47, 128, 237; (blue) */
-  /* Example: --secondary-color: 100, 116, 139; (gray) */
+
+  --foreground-rgb: 0, 0, 0;
+
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+
 }
 
-/**
- * Global Body Styles
- * 
- * Sets the default text color and background for the entire application.
- * Uses CSS variables for consistent theming and creates a subtle gradient
- * background for visual appeal.
- * 
- * Design Choices:
- * - Subtle gradient background adds visual interest without distraction
- * - Uses CSS variables for easy theme customization
- * - Professional appearance suitable for business applications
- */
 body {
-  /* Text color using CSS variable */
+
   color: rgb(var(--foreground-rgb));
-  
-  /* Subtle gradient background */
+
   background: linear-gradient(
       to bottom,
-      transparent,                              /* Start transparent */
-      rgb(var(--background-end-rgb))            /* Fade to white */
+      transparent,
+      rgb(var(--background-end-rgb))
     )
-    rgb(var(--background-start-rgb));           /* Base light gray color */
+    rgb(var(--background-start-rgb));
 }
-
-/**
- * Custom Utility Classes
- * 
- * Add any custom utility classes here that aren't available in Tailwind CSS.
- * Keep these minimal and prefer Tailwind utilities when possible.
- * 
- * Examples:
- * .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
- * .backdrop-blur-xs { backdrop-filter: blur(2px); }
- */
-
-/* Add custom utilities here if needed */

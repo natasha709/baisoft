@@ -1,52 +1,3 @@
-/**
- * User Management Page Component - Admin User Administration
- * =========================================================
- * 
- * This component provides a comprehensive user management interface for
- * administrators to create, edit, and delete users within the system.
- * 
- * Key Features:
- * - Complete user CRUD operations (Create, Read, Update, Delete)
- * - Role-based access control (Admin only)
- * - User invitation system with email notifications
- * - Professional data table with user information
- * - Modal-based forms for user creation and editing
- * - Confirmation dialogs for destructive actions
- * - Real-time user status indicators
- * - Business isolation (admins manage users in their business)
- * 
- * Access Control:
- * - Only accessible to users with 'admin' role
- * - Redirects non-admin users to regular dashboard
- * - Requires authentication (redirects to login if not authenticated)
- * 
- * User Management Features:
- * - Create new users with role assignment
- * - Edit existing user information and roles
- * - Delete users with confirmation
- * - View user status (active, pending password change)
- * - Send invitation emails with temporary passwords
- * 
- * Business Logic:
- * - Admins can only manage users within their business
- * - New users are automatically assigned to admin's business
- * - Invitation emails are sent automatically for new users
- * - User roles determine system permissions
- * 
- * User Roles:
- * - Admin: Full system access, can manage users and products
- * - Editor: Can create and edit products
- * - Approver: Can approve products for publication
- * - Viewer: Read-only access to products
- * 
- * Security Features:
- * - Role-based access control
- * - Business isolation (multi-tenancy)
- * - Confirmation dialogs for destructive actions
- * - Input validation and sanitization
- * - Audit trail through user creation tracking
- */
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -85,7 +36,6 @@ export default function UsersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingUser, setDeletingUser] = useState<{ id: number; email: string } | null>(null);
 
-  // Route guard: only logged-in admins can manage users.
   useEffect(() => {
     if (!user) {
       router.push('/login');
@@ -102,7 +52,7 @@ export default function UsersPage() {
     try {
       const response = await api.get('/auth/users/');
       const data = response.data;
-      // Support both paginated and non-paginated API responses.
+
       setUsers(Array.isArray(data) ? data : (data.results || []));
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -124,13 +74,13 @@ export default function UsersPage() {
   };
 
   const handleOpenCreate = () => {
-    // Reset stale state before opening create modal.
+
     resetForm();
     setShowForm(true);
   };
 
   const handleOpenEdit = (userToEdit: User) => {
-    // Pre-fill the form with selected user data for editing.
+
     setEditingUser(userToEdit);
     setFormData({
       email: userToEdit.email,
@@ -148,15 +98,15 @@ export default function UsersPage() {
 
     try {
       if (editingUser) {
-        // For edit, update only mutable fields.
+
         await api.patch(`/auth/users/${editingUser.id}/`, {
           first_name: formData.first_name,
           last_name: formData.last_name,
           role: formData.role,
-          // email is usually not editable easily for auth/identity reasons in some systems, but passing it if allowed
+
         });
       } else {
-        // For create, include business so user is assigned to current tenant.
+
         await api.post('/auth/users/', {
           ...formData,
           business: user?.business,
@@ -171,7 +121,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (userId: number, userEmail: string) => {
-    // Open delete confirmation modal instead of browser confirm
+
     setDeletingUser({ id: userId, email: userEmail });
     setShowDeleteModal(true);
   };
@@ -217,7 +167,7 @@ export default function UsersPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      {}
       <div className="w-64 bg-[#001529] text-white shadow-lg flex flex-col transition-colors duration-200">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-white">Product Marketplace</h1>
@@ -302,7 +252,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
@@ -391,7 +341,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Create/Edit User Modal */}
+      {}
       {
         showForm && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
@@ -484,7 +434,7 @@ export default function UsersPage() {
         )
       }
 
-      {/* Delete Confirmation Modal */}
+      {}
       {
         showDeleteModal && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
