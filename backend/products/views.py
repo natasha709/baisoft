@@ -285,3 +285,39 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(product)
         return Response(serializer.data)
+    @action(detail=False, methods=['get'])
+    def export_csv(self, request):
+        """
+        Export Product Report Endpoint (CSV)
+
+        Generates a downloadable CSV report of products.
+        Follows the same visibility rules as the product listing:
+        - Superusers: All products across all businesses
+        - Regular Users: Products from their associated business
+        """
+        import csv
+        from django.http import HttpResponse
+
+        products = self.get_queryset()
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="product_report_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Name', 'Description', 'Price', 'Status', 'Business', 'Created By', 'created AT', 'Approved by', 'Approved at'])
+
+        for product in products:
+            writer.writerow([
+                product.id,
+                product.name,
+                product.description,
+                product.price,
+                product.get_status_display(),
+                product.business_name_snapshot or product.business.name,
+                product.created_by.email if product.created_by else 'N/A',
+                product.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                product.approved_by.email if product.approved_by else 'N/A',
+                product.approved_at.strftime("%Y-%m-%d %H:%M:%S") if product.approved_at else 'N/A'
+            ])
+
+        return response
