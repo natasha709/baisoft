@@ -36,10 +36,6 @@ Performance Benefits:
 import os
 from django.core.asgi import get_asgi_application
 
-# Set the Django settings module for the ASGI application
-# This tells Django which settings file to use when the application starts
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Create the ASGI application callable
-# This handles both HTTP and potentially WebSocket connections
 application = get_asgi_application()

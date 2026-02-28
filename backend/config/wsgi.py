@@ -3,7 +3,7 @@ WSGI Configuration for Product Marketplace
 ==========================================
 
 WSGI (Web Server Gateway Interface) is the Python standard for web applications.
-This module provides the WSGI callable that production web servers use to 
+This module provides the WSGI callable that production web servers use to
 communicate with the Django application.
 
 What is WSGI?
@@ -31,10 +31,6 @@ Security Considerations:
 import os
 from django.core.wsgi import get_wsgi_application
 
-# Set the Django settings module for the WSGI application
-# This tells Django which settings file to use when the application starts
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Create the WSGI application callable
-# This is what production web servers will use to communicate with Django
 application = get_wsgi_application()

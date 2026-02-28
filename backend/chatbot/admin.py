@@ -1,7 +1,6 @@
 from django.contrib import admin
 from .models import ChatMessage
 
-
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
     list_display = ['user', 'user_message_preview', 'created_at']
